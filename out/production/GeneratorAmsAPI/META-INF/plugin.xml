@@ -1,0 +1,41 @@
+<idea-plugin>
+<id>com.dugq.dugq</id>
+<name>generatorAmsAPI</name>
+<version>2.0</version>
+<vendor email="dgqngu@163.com" url="http://www.baidu.com">百度</vendor>
+
+<description>
+  this is a test action！this is a test action！this is a test action！this is a test action！
+</description>
+
+<!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+     on how to target different products -->
+
+<idea-version since-build="145.0"/>
+
+<!--    <depends>com.intellij.modules.lang</depends>-->
+
+<!--    <depends>com.intellij.modules.java</depends>-->
+
+<!--    <depends>com.intellij.modules.xml</depends>-->
+
+<!--    <depends>com.intellij.modules.vcs</depends>-->
+
+<extensions defaultExtensionNs="com.intellij">
+  <!-- Add your extensions here -->
+</extensions>
+
+<actions>
+  <!-- Add your actions here -->
+  <action id="uploadAPI" class="com.dugq.GeneratorSingleApi" text="上传ams接口">
+    <add-to-group group-id="GenerateGroup" anchor="first"/>
+  </action>
+  <action id="clearUserInfo" class="com.dugq.ClearUserInfo" text="清楚userInfo">
+    <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="uploadAPI"/>
+  </action>
+</actions>
+<depends>com.intellij.modules.platform</depends>
+<depends>com.intellij.modules.java</depends>
+<depends>com.intellij.modules.xml</depends>
+
+</idea-plugin>
