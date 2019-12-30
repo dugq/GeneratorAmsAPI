@@ -75,17 +75,17 @@ public class GeneratorSingleApi extends AnAction {
             throw new RuntimeException();
         }
 
-        String mapping = getRequestUrl(containingClass, SpringMVCConstant.RequestMapping);
+        String mapping = getRequestUrl(containingClass, SpringMVCConstant.RequestMapping,project);
         if(Objects.isNull(mapping)){
-            ApiParamBuildUtil.error("class 的 requestMapping呢",project);
+            ApiParamBuildUtil.error("class 的 requestMapping有错",project);
             throw new RuntimeException();
         }
-        String subMapping = getRequestUrl(containingMethod, SpringMVCConstant.GetMapping);
+        String subMapping = getRequestUrl(containingMethod, SpringMVCConstant.GetMapping, project);
         String requestMethod;
         if(Objects.nonNull(subMapping)){
             requestMethod = "get";
         }else{
-            subMapping = getRequestUrl(containingMethod, SpringMVCConstant.PostMapping);
+            subMapping = getRequestUrl(containingMethod, SpringMVCConstant.PostMapping, project);
             if(Objects.isNull(subMapping)){
                 ApiParamBuildUtil.error("方法必须注解 getMapping or postMapping",project);
                 throw new RuntimeException();
@@ -124,7 +124,7 @@ public class GeneratorSingleApi extends AnAction {
                 param.setGroupID(simpleApiVo.getGroupID());
                 param.setApiID(simpleApiVo.getApiID());
                 ApiEditorService.editAPI(project,param);
-                ApiParamBuildUtil.error("跟新成功",project);
+                ApiParamBuildUtil.success("跟新成功",project);
                 return;
             }else{
                 ApiParamBuildUtil.error("存在同名URI，无法添加！！！",project);
@@ -135,7 +135,7 @@ public class GeneratorSingleApi extends AnAction {
         GroupVo groupVo = getGroupVo(groupVos);
         param.setGroupID(groupVo.getGroupID());
         ApiEditorService.addAPI(project,param);
-        ApiParamBuildUtil.error("上传接口成功",project);
+        ApiParamBuildUtil.success("上传接口成功",project);
     }
 
     private GroupVo getGroupVo(List<GroupVo> groupVos) {
@@ -169,7 +169,7 @@ public class GeneratorSingleApi extends AnAction {
                     || returnType.getPresentableText().startsWith("Map")
                     || returnType.getPresentableText().startsWith("Set")
                     || returnType instanceof PsiArrayType) {
-                //todo 不支持的返回值类型
+                ApiParamBuildUtil.error("返回值不支持直接返回集合",project);
                 throw new RuntimeException();
             }else{
                 String canonicalText = returnType.getCanonicalText();
@@ -219,6 +219,7 @@ public class GeneratorSingleApi extends AnAction {
             query.setParamKey(psiParameter.getName());
             query.setParamType(ApiParamBuildUtil.getType(psiType.getPresentableText()));
             query.setParamName(DesUtil.getParamDesc(containingMethod,psiParameter.getName()));
+            query.setParamValueList(DesUtil.getParamEnumValues(containingMethod,psiParameter.getName(),project));
             PsiAnnotation notNull = psiParameter.getAnnotation("javax.validation.constraints.NotNull");
             if(Objects.nonNull(notNull)){
                 query.setParamNotNull(0);
@@ -230,6 +231,7 @@ public class GeneratorSingleApi extends AnAction {
             query.setParamKey(psiParameter.getName());
             query.setParamType(ApiParamBuildUtil.getType(psiType.getPresentableText()));
             query.setParamName(DesUtil.getParamDesc(containingMethod,psiParameter.getName()));
+            query.setParamValueList(DesUtil.getParamEnumValues(containingMethod,psiParameter.getName(),project));
             PsiAnnotation notNull = psiParameter.getAnnotation("javax.validation.constraints.NotNull");
             if(Objects.nonNull(notNull)){
                 query.setParamNotNull(0);
@@ -296,7 +298,7 @@ public class GeneratorSingleApi extends AnAction {
         return "object";
     }
 
-    private String getRequestUrl(PsiModifierListOwner target, String fullNameAnnotation) {
+    private String getRequestUrl(PsiModifierListOwner target, String fullNameAnnotation, Project project) {
         PsiAnnotation psiAnnotation= PsiAnnotationSearchUtil.findAnnotation(target, fullNameAnnotation);
         if(Objects.isNull(psiAnnotation)){
             return null;
@@ -307,9 +309,15 @@ public class GeneratorSingleApi extends AnAction {
                 return psiNameValuePairs[0].getLiteralValue();
             }else{
                 PsiAnnotationMemberValue psiAnnotationMemberValue=psiAnnotation.findAttributeValue("value");
-                if(psiAnnotationMemberValue!=null){
-                    String[] results=psiAnnotationMemberValue.getReference().resolve().getText().split("=");
+                if(psiAnnotationMemberValue.getReference()!=null){
+                    PsiReference reference = psiAnnotationMemberValue.getReference();
+                    PsiElement resolve = reference.resolve();
+                    String text = resolve.getText();
+                    String[] results= text.split("=");
                     return results[results.length - 1].split(";")[0].replace("\"", "").trim();
+                }else{
+                    ApiParamBuildUtil.error("Mapping定义有问题",project);
+                    return null;
                 }
             }
         }

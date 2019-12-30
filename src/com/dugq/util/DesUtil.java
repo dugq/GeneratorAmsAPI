@@ -1,10 +1,14 @@
 package com.dugq.util;
 
+import com.dugq.pojo.ParamSelectValue;
 import com.dugq.pojo.enums.YapiStatusEnum;
 import com.google.common.base.Strings;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiEnumConstant;
+import com.intellij.psi.PsiExpression;
+import com.intellij.psi.PsiExpressionList;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.impl.source.PsiClassImpl;
@@ -12,10 +16,14 @@ import com.intellij.psi.impl.source.PsiJavaFileImpl;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.javadoc.PsiDocTag;
 import com.intellij.psi.search.GlobalSearchScope;
+import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 描述工具
@@ -102,13 +110,96 @@ public class DesUtil {
             PsiDocTag[] psiDocTags = psiMethodTarget.getDocComment().getTags();
             for (PsiDocTag psiDocTag : psiDocTags) {
                 if ((psiDocTag.getText().contains("@param") || psiDocTag.getText().contains("@Param")) && (!psiDocTag.getText().contains("[")) && psiDocTag.getText().contains(paramName)) {
-                    return trimFirstAndLastChar(psiDocTag.getText().replace("@param", "").replace("@Param", "").replace(paramName,"").replace(":", "").replace("*", "").replace("\n", " "), ' ').trim();
+                    String trim = trimFirstAndLastChar(psiDocTag.getText().replace("@param", "").replace("@Param", "").replace(paramName, "").replace(":", "").replace("*", "").replace("\n", " "), ' ').trim();
+                    if(trim.contains("@link")){
+                        return trim.substring(0,trim.indexOf("{{@link"));
+                    }else{
+                        return trim;
+                    }
                 }
             }
         }
         return "";
     }
 
+    public static List<ParamSelectValue> getParamEnumValues(PsiMethod psiMethodTarget, String paramName,Project project){
+        if(psiMethodTarget.getDocComment()!=null) {
+            PsiDocTag[] psiDocTags = psiMethodTarget.getDocComment().getTags();
+            for (PsiDocTag psiDocTag : psiDocTags) {
+                if ((psiDocTag.getText().contains("@param") || psiDocTag.getText().contains("@Param")) && (!psiDocTag.getText().contains("[")) && psiDocTag.getText().contains(paramName)) {
+                    String trim = trimFirstAndLastChar(psiDocTag.getText().replace("@param", "").replace("@Param", "").replace(paramName, "").replace(":", "").replace("*", "").replace("\n", " "), ' ').trim();
+                    List<ParamSelectValue> list = getSelectValuesFromLink(project, trim);
+                    if (list != null) return list;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static List<ParamSelectValue> getSelectValuesFromLink(Project project, String trim) {
+        if(trim.contains("@link")){
+            trim = subStringWithReg(trim, "@link.*?}}").trim();
+            trim = trim.replace("@link","").replace("}}","").trim();
+            List<ParamSelectValue> list = getSelectValueFromPsiClass(project, trim);
+            if (list != null) return list;
+        }
+        return null;
+    }
+
+    @Nullable
+    private static List<ParamSelectValue> getSelectValueFromPsiClass(Project project, String trim) {
+        PsiClass psiClassChild = JavaPsiFacade.getInstance(project).findClass(trim, GlobalSearchScope.allScope(project));
+        if(psiClassChild.isEnum()){
+            PsiField[] allFields = psiClassChild.getAllFields();
+            List<ParamSelectValue> list = new ArrayList<>();
+            for (PsiField filed : allFields) {
+                if(filed instanceof PsiEnumConstant){
+                    PsiExpressionList argumentList = ((PsiEnumConstant) filed).getArgumentList();
+                    PsiExpression[] expressions = argumentList.getExpressions();
+                    if(expressions.length>1){
+                        ParamSelectValue selectValue = new ParamSelectValue();
+                        selectValue.setValue(expressions[0].getText());
+                        selectValue.setValueDescription(expressions[1].getText());
+                        list.add(selectValue);
+                    }
+                }
+            }
+            return list;
+        }
+        return null;
+    }
+
+    private static String subStringWithReg(String source,String reg){
+        Pattern pattern = Pattern.compile(reg);
+        Matcher matcher = pattern.matcher(source);
+        if(matcher.find()){
+            return matcher.group();
+        }
+        return null;
+    }
+
+
+    public static List<ParamSelectValue> getFieldEnumValues(Project project,PsiDocComment psiDocComment){
+        if(Objects.isNull(psiDocComment)){
+            return null;
+        }
+        String fileText = psiDocComment.getText();
+        if(StringUtils.isBlank(fileText)){
+            return null;
+        }
+        List<ParamSelectValue> values = getSelectValuesFromLink(project, fileText);
+        if(Objects.isNull(values)){
+            String trim = subStringWithReg(fileText, "@see.*?\n");
+            if(StringUtils.isNotBlank(trim)){
+                trim = trim.replace("@see","").trim();
+                trim = trim.split(" ")[0];
+                return getSelectValueFromPsiClass(project, trim);
+            }
+        }else{
+            return values;
+        }
+        return null;
+    }
     /**
      * @description: 获得属性注释
      * @param: [psiDocComment]
@@ -120,10 +211,35 @@ public class DesUtil {
         if(Objects.nonNull(psiDocComment)) {
             String fileText = psiDocComment.getText();
             if (!Strings.isNullOrEmpty(fileText)) {
-                return trimFirstAndLastChar(fileText.replace("*", "").replace("/", "").replace(" ", "").replace("\n", ",").replace("\t", ""), ',').split("\\{@link")[0];
+                if(fileText.contains("@Exp")){
+                    fileText = fileText.substring(0,fileText.indexOf("@Exp"));
+                }
+                return trimFirstAndLastChar(fileText.replace("*", "").replace("/", "").replace(" ", "").replace("\n", ",").replace("\t", ""), ',').split("\\{\\{@link")[0].split("@see")[0];
             }
         }
         return "";
+    }
+
+    public static String getFiledDefaultValue(PsiDocComment psiDocComment){
+        if(Objects.nonNull(psiDocComment)) {
+            String fileText = psiDocComment.getText();
+            if(StringUtils.isNotEmpty(fileText) && (fileText.contains("@Exp"))){
+                String substring = fileText.substring(fileText.indexOf("@Exp"));
+                if(StringUtils.isNotEmpty(substring)){
+                    substring= substring.substring(0,substring.indexOf("\n"));
+                    String[] split = substring.split("@Exp");
+                    if(split.length>1){
+                        substring = split[1].trim();
+                        if(substring.contains("*")){
+                            substring = substring.split("\\*")[0];
+                            return substring;
+                        }
+                    }
+
+                }
+            }
+        }
+        return null;
     }
     /**
      * @description: 获得引用url

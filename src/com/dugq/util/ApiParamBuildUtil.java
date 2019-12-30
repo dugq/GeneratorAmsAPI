@@ -55,6 +55,8 @@ public class ApiParamBuildUtil {
             param.setParamKey(getParamKey(parentKey,paramKey));
             param.setParamType(getType(filedType.getPresentableText()));
             param.setParamName(DesUtil.getFiledDesc(psiField.getDocComment()));
+            param.setParamValue(DesUtil.getFiledDefaultValue(psiField.getDocComment()));
+            param.setParamValueList(DesUtil.getFieldEnumValues(project,psiField.getDocComment()));
             PsiAnnotation notNull = psiField.getAnnotation("javax.validation.constraints.NotNull");
             if(Objects.nonNull(notNull)){
                 param.setParamNotNull(0);
@@ -65,17 +67,19 @@ public class ApiParamBuildUtil {
             param.setParamKey(getParamKey(parentKey,paramKey));
             param.setParamType(getType(filedType.getPresentableText()));
             param.setParamName(DesUtil.getFiledDesc(psiField.getDocComment()));
+            param.setParamValue(DesUtil.getFiledDefaultValue(psiField.getDocComment()));
+            param.setParamValueList(DesUtil.getFieldEnumValues(project,psiField.getDocComment()));
             PsiAnnotation notNull = psiField.getAnnotation("javax.validation.constraints.NotNull");
             if(Objects.nonNull(notNull)){
                 param.setParamNotNull(0);
             }
-            PsiAnnotation dateTimeFormat = psiField.getAnnotation("org.springframework.format.annotation.DateTimeFormat");
-            PsiAnnotation jsonFormat = psiField.getAnnotation("com.fasterxml.jackson.annotation.JsonFormat");
-            if(Objects.nonNull(dateTimeFormat)){
-                param.setParamValue(dateTimeFormat.findAttributeValue("pattern").getText());
-            }else if(Objects.nonNull(jsonFormat)){
-                param.setParamValue(jsonFormat.findAttributeValue("pattern").getText());
-            }
+//            PsiAnnotation dateTimeFormat = psiField.getAnnotation("org.springframework.format.annotation.DateTimeFormat");
+//            PsiAnnotation jsonFormat = psiField.getAnnotation("com.fasterxml.jackson.annotation.JsonFormat");
+//            if(Objects.nonNull(dateTimeFormat)){
+//                param.setParamValue(dateTimeFormat.findAttributeValue("pattern").getText());
+//            }else if(Objects.nonNull(jsonFormat)){
+//                param.setParamValue(jsonFormat.findAttributeValue("pattern").getText());
+//            }
             return singletonList(param);
         }
         else if(filedType.getPresentableText().startsWith("List") || filedType.getPresentableText().startsWith("Set")){ //集合
@@ -110,6 +114,8 @@ public class ApiParamBuildUtil {
             param.setParamKey(getParamKey(parentKey,paramKey));
             param.setParamType(getType(deepType.getPresentableText()));
             param.setParamName(DesUtil.getFiledDesc(psiField.getDocComment()));
+            param.setParamValue(DesUtil.getFiledDefaultValue(psiField.getDocComment()));
+            param.setParamValueList(DesUtil.getFieldEnumValues(project,psiField.getDocComment()));
             params.add(param);
             return params;
         }else if(filedType.getPresentableText().startsWith("Map")){
@@ -227,6 +233,10 @@ public class ApiParamBuildUtil {
 
     public static void error(String message, Project project){
         Notification error = notificationGroup.createNotification(message, NotificationType.ERROR);
+        Notifications.Bus.notify(error, project);
+    }
+    public static void success(String message, Project project){
+        Notification error = notificationGroup.createNotification(message, NotificationType.INFORMATION);
         Notifications.Bus.notify(error, project);
     }
 
