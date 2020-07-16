@@ -6,13 +6,20 @@ import com.dugq.pojo.UserInfo;
 import com.dugq.util.ApiParamBuildUtil;
 import com.dugq.util.HttpClientUtil;
 import com.dugq.util.Md5Util;
+import com.dugq.util.XmlUtil;
 import com.intellij.openapi.project.Project;
 import com.twmacinta.util.MD5;
 import org.apache.commons.lang3.RandomUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +34,7 @@ public class LoginService {
     private static final String checkLogin = "http://ams.dui88.com/server/index.php?g=Web&c=Guest&o=checkLogin";
 
     public static String login(Project project){
-        UserInfo userInfo = getUserInfo();
+        UserInfo userInfo = getUserInfo(project);
         String PHPSESSID = MD5.asHex(RandomUtils.nextBytes(8));
         Map<String,Object> map = new HashMap<>();
         try {
@@ -49,8 +56,8 @@ public class LoginService {
     }
 
     @NotNull
-    private static UserInfo getUserInfo() {
-        UserInfo storeUserInfo = readUserInfo();
+    private static UserInfo getUserInfo(Project project) {
+        UserInfo storeUserInfo = readUserInfo(project);
         if(Objects.nonNull(storeUserInfo)){
             return storeUserInfo;
         }
@@ -64,7 +71,7 @@ public class LoginService {
         userInfo.setAccount(account);
         String password = component.getPassword();
         userInfo.setPassword(password);
-        writeUserInfo(userInfo);
+        writeUserInfo(project,userInfo);
         return userInfo;
     }
 
@@ -82,44 +89,14 @@ public class LoginService {
         }
     }
 
-    public static UserInfo readUserInfo() {
-        InputStream path = LoginService.class.getResourceAsStream("/dataBase");
-        BufferedReader reader = new BufferedReader(new InputStreamReader(path));
-        Properties properties =  new Properties();
-        try {
-            properties.load(reader);
-            String account = properties.getProperty("account");
-            String password = properties.getProperty("password");
-            if(StringUtils.isNotBlank(account) && StringUtils.isNotBlank(password)){
-                UserInfo userInfo = new UserInfo();
-                userInfo.setAccount(account);
-                userInfo.setPassword(password);
-                return userInfo;
-            }else{
-                return null;
-            }
-        } catch (IOException e) {
-            return null;
-        }
+    public static UserInfo readUserInfo(Project project) {
+        String path = project.getProjectFile().getParent().getPath();
+        return XmlUtil.getInfoFromXml(path+"/ams.xml");
     }
 
-    public static void writeUserInfo(UserInfo userInfo) {
-        URL resource = LoginService.class.getResource("/dataBase");
-        try (
-                FileWriter writer = new FileWriter(new File(resource.getFile()),true);
-            ){
-            InputStream path = LoginService.class.getResourceAsStream("/dataBase");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(path));
-            Properties properties =  new Properties();
-            properties.load(reader);
-            properties.setProperty("account",userInfo.getAccount());
-            properties.setProperty("password",userInfo.getPassword());
-            properties.store(writer, "Copyright (c) Boxcode Studio");
-        } catch (FileNotFoundException | UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public static void writeUserInfo(Project project, UserInfo userInfo) {
+        String path = project.getProjectFile().getParent().getPath();
+        XmlUtil.write(userInfo.getAccount(),userInfo.getPassword(),path+"/ams.xml");
     }
 
     public static void clearUserInfo() {

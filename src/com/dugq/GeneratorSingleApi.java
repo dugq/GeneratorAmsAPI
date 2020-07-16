@@ -2,6 +2,9 @@ package com.dugq;
 
 import com.dugq.ams.ApiEditorService;
 import com.dugq.ams.LoginService;
+import com.dugq.component.SelectInputComponent;
+import com.dugq.exception.ErrorException;
+import com.dugq.exception.StopException;
 import com.dugq.pojo.EditorParam;
 import com.dugq.pojo.GroupVo;
 import com.dugq.pojo.RequestParam;
@@ -31,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Created by dugq on 2019/12/16.
@@ -44,9 +46,9 @@ public class GeneratorSingleApi extends AnAction {
         Project project = event.getProject();
         Editor editor = event.getData(PlatformDataKeys.EDITOR);
         if(Objects.isNull(editor)){
-            ApiParamBuildUtil.error("请选择接口",project);
             return;
         }
+
         String login = LoginService.login(project);
         Boolean isLogin = LoginService.checkLogin(project,login);
 
@@ -62,23 +64,55 @@ public class GeneratorSingleApi extends AnAction {
             ApiParamBuildUtil.error("请选择文件！",project);
             throw new RuntimeException();
         }
-        //获取当前方法
-        PsiMethod containingMethod = PsiTreeUtil.getParentOfType(psiFile.findElementAt(editor.getCaretModel().getOffset()), PsiMethod.class);
-        if(Objects.isNull(containingMethod)){
-            ApiParamBuildUtil.error("请选择方法！",project);
-            throw new RuntimeException();
-        }
-        //获取当前类
-        PsiClass containingClass = containingMethod.getContainingClass();
+        PsiClass containingClass = PsiTreeUtil.getParentOfType(psiFile.findElementAt(editor.getCaretModel().getOffset()), PsiClass.class);
         if(Objects.isNull(containingClass)){
-            ApiParamBuildUtil.error("请选择类！",project);
+            ApiParamBuildUtil.error("请选择controller！",project);
             throw new RuntimeException();
         }
 
+        //获取当前方法
+        PsiMethod containingMethod = PsiTreeUtil.getParentOfType(psiFile.findElementAt(editor.getCaretModel().getOffset()), PsiMethod.class);
+        if(Objects.isNull(containingMethod)){
+            PsiMethod[] allMethods = containingClass.getMethods();
+            StringBuilder sb = new StringBuilder();
+            for (PsiMethod method : allMethods) {
+                PsiAnnotation get = PsiAnnotationSearchUtil.findAnnotation(method, SpringMVCConstant.GetMapping);
+                PsiAnnotation post = PsiAnnotationSearchUtil.findAnnotation(method, SpringMVCConstant.PostMapping);
+                if(Objects.nonNull(get) || Objects.nonNull(post)){
+                    try {
+                        uploadOneApi(param, project, groupVos, method, containingClass);
+                    }catch (StopException e){
+                        //skip
+                    }catch (ErrorException e){
+                        sb.append(e.toString()+"\n");
+                    }catch (Exception e){
+                        e.printStackTrace();
+                        sb.append("发送未知错误,请联系管理员\n");
+                    }
+                }
+            }
+            if(StringUtils.isNotBlank(sb.toString())){
+                ApiParamBuildUtil.error(sb.toString(),project);
+            }
+        }else{
+            try {
+                uploadOneApi(param, project, groupVos, containingMethod, containingClass);
+            }catch (StopException e){
+                //skip
+            }catch (ErrorException e){
+                ApiParamBuildUtil.error(e.toString(),project);
+            }catch (Exception e){
+                e.printStackTrace();
+                ApiParamBuildUtil.error("发送未知错误\n",project);
+            }
+        }
+
+    }
+
+    private void uploadOneApi(EditorParam param, Project project, List<GroupVo> groupVos, PsiMethod containingMethod, PsiClass containingClass) {
         String mapping = getRequestUrl(containingClass, SpringMVCConstant.RequestMapping,project);
         if(Objects.isNull(mapping)){
-            ApiParamBuildUtil.error("class 的 requestMapping有错",project);
-            throw new RuntimeException();
+            throw new ErrorException(containingMethod,null,"class 的 requestMapping定义不规范");
         }
         String subMapping = getRequestUrl(containingMethod, SpringMVCConstant.GetMapping, project);
         String requestMethod;
@@ -87,8 +121,7 @@ public class GeneratorSingleApi extends AnAction {
         }else{
             subMapping = getRequestUrl(containingMethod, SpringMVCConstant.PostMapping, project);
             if(Objects.isNull(subMapping)){
-                ApiParamBuildUtil.error("方法必须注解 getMapping or postMapping",project);
-                throw new RuntimeException();
+                throw new ErrorException(containingMethod,null,"方法必须注解 getMapping or postMapping");
             }
             requestMethod = "post";
         }
@@ -98,13 +131,12 @@ public class GeneratorSingleApi extends AnAction {
         //读取方法注释
         PsiDocComment docComment = containingMethod.getDocComment();
         String methodDesc = DesUtil.getFiledDesc(docComment);
-        if(StringUtils.isBlank(methodDesc)){
-            ApiParamBuildUtil.error("接口名称请用在方法注释中声明",project);
-            return;
-        }
         //截取第一段作为接口注释
         if(methodDesc.contains("@")){
             methodDesc = methodDesc.substring(0,methodDesc.indexOf("@"));
+        }
+        if(StringUtils.isBlank(methodDesc)){
+            throw new ErrorException(containingMethod,null,"接口名称请用在方法注释中声明");
         }
         param.setApiName(methodDesc);
         List<RequestParam> queryList = getQueryList(project, containingMethod);
@@ -115,35 +147,35 @@ public class GeneratorSingleApi extends AnAction {
         List<SimpleApiVo> simpleApiVos = ApiEditorService.amsApiSearchParam(project, uri);
         if(CollectionUtils.isNotEmpty(simpleApiVos)){
             if(simpleApiVos.size()>1){
-                ApiParamBuildUtil.error("存在多个相同URI的API，无法添加！！！",project);
-                return;
+                throw new ErrorException(containingMethod,null,"存在多个相同URI的API，无法添加！！！");
             }
-            int update = Messages.showDialog("请选择", "存在相同uri接口，是否跟新？", new String[]{"是", "否"}, 0, null);
+            int update = Messages.showDialog("请选择是否跟新接口:"+uri, "存在相同uri接口，是否跟新？", new String[]{"是", "否"}, 0, null);
             if (update==0){
                 SimpleApiVo simpleApiVo = simpleApiVos.get(0);
                 param.setGroupID(simpleApiVo.getGroupID());
                 param.setApiID(simpleApiVo.getApiID());
                 ApiEditorService.editAPI(project,param);
-                ApiParamBuildUtil.success("跟新成功",project);
+                ApiParamBuildUtil.success("跟新接口"+uri+"成功",project);
                 return;
             }else{
-                ApiParamBuildUtil.error("存在同名URI，无法添加！！！",project);
-                return;
+                throw new ErrorException(containingMethod,null,"存在同名接口"+uri+"，无法添加！！！");
             }
 
         }
-        GroupVo groupVo = getGroupVo(groupVos);
+        GroupVo groupVo = getGroupVo(groupVos,uri);
         param.setGroupID(groupVo.getGroupID());
         ApiEditorService.addAPI(project,param);
-        ApiParamBuildUtil.success("上传接口成功",project);
+        ApiParamBuildUtil.success("上传接口"+uri+"成功",project);
     }
 
-    private GroupVo getGroupVo(List<GroupVo> groupVos) {
-        List<String> groupName = groupVos.stream().map(GroupVo::getGroupName).collect(Collectors.toList());
-        int chooseGroup = Messages.showDialog("请选择", "选择分组", groupName.toArray(new String[]{}), 0, null);
-        GroupVo groupVo = groupVos.get(chooseGroup);
+    private GroupVo getGroupVo(List<GroupVo> groupVos, String uri) {
+        SelectInputComponent comboBox = new SelectInputComponent(groupVos,uri);
+        if(!comboBox.showAndGet()){
+            throw new StopException();
+        }
+        GroupVo groupVo = groupVos.get(comboBox.getBox().getSelectedIndex());
         if(CollectionUtils.isNotEmpty(groupVo.getChildGroupList())){
-            return getGroupVo(groupVo.getChildGroupList());
+            return getGroupVo(groupVo.getChildGroupList(), uri);
         }
         return groupVo;
     }
@@ -161,7 +193,7 @@ public class GeneratorSingleApi extends AnAction {
             }
             else if(NormalTypes.isNormalType(returnType.getPresentableText())){
                 RequestParam returnValue = new RequestParam();
-                returnValue.setParamKey(((PsiPrimitiveType) returnType).getName());
+                returnValue.setParamKey(returnType.getPresentableText());
                 returnValue.setParamName(DesUtil.getReturn(containingMethod));
                 returnValue.setParamType(ApiParamBuildUtil.getType(returnType.getPresentableText()));
                 returnList.add(returnValue);
@@ -169,8 +201,7 @@ public class GeneratorSingleApi extends AnAction {
                     || returnType.getPresentableText().startsWith("Map")
                     || returnType.getPresentableText().startsWith("Set")
                     || returnType instanceof PsiArrayType) {
-                ApiParamBuildUtil.error("返回值不支持直接返回集合",project);
-                throw new RuntimeException();
+                throw new ErrorException(null,null,"返回值不支持直接返回集合");
             }else{
                 String canonicalText = returnType.getCanonicalText();
                 PsiClass returnClass;
@@ -219,6 +250,7 @@ public class GeneratorSingleApi extends AnAction {
             query.setParamKey(psiParameter.getName());
             query.setParamType(ApiParamBuildUtil.getType(psiType.getPresentableText()));
             query.setParamName(DesUtil.getParamDesc(containingMethod,psiParameter.getName()));
+            query.setParamValue(DesUtil.getParamExp(containingMethod,psiParameter.getName()));
             query.setParamValueList(DesUtil.getParamEnumValues(containingMethod,psiParameter.getName(),project));
             PsiAnnotation notNull = psiParameter.getAnnotation("javax.validation.constraints.NotNull");
             if(Objects.nonNull(notNull)){
@@ -231,6 +263,7 @@ public class GeneratorSingleApi extends AnAction {
             query.setParamKey(psiParameter.getName());
             query.setParamType(ApiParamBuildUtil.getType(psiType.getPresentableText()));
             query.setParamName(DesUtil.getParamDesc(containingMethod,psiParameter.getName()));
+            query.setParamValue(DesUtil.getParamExp(containingMethod,psiParameter.getName()));
             query.setParamValueList(DesUtil.getParamEnumValues(containingMethod,psiParameter.getName(),project));
             PsiAnnotation notNull = psiParameter.getAnnotation("javax.validation.constraints.NotNull");
             if(Objects.nonNull(notNull)){
@@ -250,12 +283,11 @@ public class GeneratorSingleApi extends AnAction {
                 requstParams.addAll(ApiParamBuildUtil.getParamListFromClass(psiClassChild,project,null,psiParameter.getName(), Arrays.asList(types)));
                 return requstParams;
             }else{
-                ApiParamBuildUtil.error("参数"+psiParameter.getName()+"未加泛型",project);
-                throw new RuntimeException();
+                throw new ErrorException(containingMethod,null,"参数"+psiParameter.getName()+"未加泛型");
             }
         }else if(psiType.getPresentableText().startsWith("Map")){
             ApiParamBuildUtil.error("参数不支持Map",project);
-            throw new RuntimeException();
+            throw new ErrorException(containingMethod,null,"参数不支持Map");
         }else{ //object
             List<String> types = new ArrayList<>();
             PsiClass psiClassChild;
@@ -316,7 +348,6 @@ public class GeneratorSingleApi extends AnAction {
                     String[] results= text.split("=");
                     return results[results.length - 1].split(";")[0].replace("\"", "").trim();
                 }else{
-                    ApiParamBuildUtil.error("Mapping定义有问题",project);
                     return null;
                 }
             }

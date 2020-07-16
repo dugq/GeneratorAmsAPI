@@ -50,7 +50,7 @@ public class Param2JSON {
             }
             List<RequestParam> children = map.get(shortName);
             if(CollectionUtils.isEmpty(children)){
-                result.put(shortName,getDefaultValue(requestParam.getParamValue(),requestParam.getParamType()));
+                result.put(shortName,StringUtils.isBlank(requestParam.getParamValue())?getDefaultValue(requestParam.getParamValue(),requestParam.getParamType()):requestParam.getParamValue());
             }else{
                 if(requestParam.getParamType()==12){
                     JSONArray array = new JSONArray();

@@ -1,5 +1,6 @@
 package com.dugq.util;
 
+import com.dugq.exception.ErrorException;
 import com.dugq.pojo.RequestParam;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationDisplayType;
@@ -50,6 +51,9 @@ public class ApiParamBuildUtil {
             return Collections.emptyList();
         }
         PsiType filedType = psiField.getType();
+        if(filedType.getPresentableText().equals("Class<Void>")){
+            return Collections.emptyList();
+        }
         if(filedType instanceof PsiPrimitiveType || NormalTypes.isNormalType(filedType.getPresentableText())){ //基本类型
             RequestParam param = new RequestParam();
             param.setParamKey(getParamKey(parentKey,paramKey));
@@ -73,21 +77,13 @@ public class ApiParamBuildUtil {
             if(Objects.nonNull(notNull)){
                 param.setParamNotNull(0);
             }
-//            PsiAnnotation dateTimeFormat = psiField.getAnnotation("org.springframework.format.annotation.DateTimeFormat");
-//            PsiAnnotation jsonFormat = psiField.getAnnotation("com.fasterxml.jackson.annotation.JsonFormat");
-//            if(Objects.nonNull(dateTimeFormat)){
-//                param.setParamValue(dateTimeFormat.findAttributeValue("pattern").getText());
-//            }else if(Objects.nonNull(jsonFormat)){
-//                param.setParamValue(jsonFormat.findAttributeValue("pattern").getText());
-//            }
             return singletonList(param);
         }
         else if(filedType.getPresentableText().startsWith("List") || filedType.getPresentableText().startsWith("Set")){ //集合
             String canonicalText = filedType.getCanonicalText();
             String[] split = canonicalText.split("<");
             if(split.length<=0){
-                error("collection 必须声明泛型！！！！！",project);
-                throw new RuntimeException();
+                throw new ErrorException(null,psiField,"collection 必须声明泛型！！！！！");
             }
             List<String> collectionChildrenList = new ArrayList<>();
             if(split.length==2 && StringUtils.equals(split[1].split(">")[0], "T")){
@@ -119,14 +115,15 @@ public class ApiParamBuildUtil {
             params.add(param);
             return params;
         }else if(filedType.getPresentableText().startsWith("Map")){
-            error("不支持Map类型！！！！",project);
-            throw new RuntimeException();
+            throw new ErrorException(null,psiField,"不支持Map类型！！！！");
         }else if(StringUtils.equals(psiField.getType().getPresentableText(),"T")){
             if(CollectionUtils.isEmpty(childGenericTypes)){
-                error(psiField.getName()+"字段泛型未声明",project);
-                throw new RuntimeException();
+                throw new ErrorException(null,psiField,psiField.getName()+"字段泛型未声明");
             }
             String childType = childGenericTypes.get(0).split(">")[0];
+            if("java.lang.Void".equals(childType)){
+                return Collections.emptyList();
+            }
             childGenericTypes.remove(childType);
             PsiClass psiClassChild = JavaPsiFacade.getInstance(project).findClass(childType, GlobalSearchScope.allScope(project));
             List<RequestParam> params = getParamListFromClass(psiClassChild,project,getParamKey(parentKey,paramKey),psiField.getName(),childGenericTypes);
@@ -137,7 +134,17 @@ public class ApiParamBuildUtil {
             params.add(param);
             return params;
         }else{  //object
-            PsiClass psiClassChild = JavaPsiFacade.getInstance(project).findClass(filedType.getCanonicalText(), GlobalSearchScope.allScope(project));
+            String canonicalText = filedType.getCanonicalText();
+            if (canonicalText.contains("<")){
+                String[] types= filedType.getCanonicalText().split("<");
+                canonicalText = types[0];
+                childGenericTypes = new ArrayList<>();
+                for (String type : types){
+                    childGenericTypes.add(type.replace(">",""));
+                }
+                childGenericTypes.remove(canonicalText);
+            }
+            PsiClass psiClassChild = JavaPsiFacade.getInstance(project).findClass(canonicalText, GlobalSearchScope.allScope(project));
             List<RequestParam> params = getParamListFromClass(psiClassChild,project,getParamKey(parentKey,paramKey),psiField.getName(),childGenericTypes);
             RequestParam param = new RequestParam();
             param.setParamKey(getParamKey(parentKey,paramKey));
@@ -151,8 +158,7 @@ public class ApiParamBuildUtil {
     public static List<RequestParam> getParamListFromClass(PsiClass psiClassChild, Project project, String parentKey, String paramKey, List<String> childGenericTypes) {
         ArrayList<RequestParam> paramList = new ArrayList<>();
         if(Objects.isNull(psiClassChild)){
-            ApiParamBuildUtil.error("缺少泛型指定："+paramKey,project);
-            throw new RuntimeException();
+            throw new ErrorException(null,null,"缺少泛型指定："+paramKey);
         }
         if(psiClassChild instanceof PsiPrimitiveType || NormalTypes.isNormalType(psiClassChild.getName())){ //基本类型
             return paramList;

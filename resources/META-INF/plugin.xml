@@ -1,8 +1,8 @@
 <idea-plugin>
 <id>com.dugq.dugq</id>
 <name>generatorAmsAPI</name>
-<version>2.0</version>
-<vendor email="dgqngu@163.com" url="http://www.baidu.com">百度</vendor>
+<version>3.3</version>
+<vendor email="dgqngu@163.com" url="http://www.dui88.com">兑吧</vendor>
 
 <description>
   this is a test action！this is a test action！this is a test action！this is a test action！
@@ -29,9 +29,6 @@
   <!-- Add your actions here -->
   <action id="uploadAPI" class="com.dugq.GeneratorSingleApi" text="上传ams接口">
     <add-to-group group-id="GenerateGroup" anchor="first"/>
-  </action>
-  <action id="clearUserInfo" class="com.dugq.ClearUserInfo" text="清楚userInfo">
-    <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="uploadAPI"/>
   </action>
 </actions>
 <depends>com.intellij.modules.platform</depends>

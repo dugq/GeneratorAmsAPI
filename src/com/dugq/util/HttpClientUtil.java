@@ -1,6 +1,7 @@
 package com.dugq.util;
 
 import com.alibaba.fastjson.JSONObject;
+import com.dugq.exception.ErrorException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
@@ -332,7 +333,11 @@ public class HttpClientUtil {
             throw new IOException();
         }
         String s = IOUtils.toString(closeableHttpResponse.getEntity().getContent(),"utf-8");
-        return JSONObject.parseObject(s);
+        try {
+            return JSONObject.parseObject(s);
+        }catch (Exception e){
+            throw new ErrorException(null,null,s);
+        }
     }
 
 

@@ -20,6 +20,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -112,15 +113,39 @@ public class DesUtil {
                 if ((psiDocTag.getText().contains("@param") || psiDocTag.getText().contains("@Param")) && (!psiDocTag.getText().contains("[")) && psiDocTag.getText().contains(paramName)) {
                     String trim = trimFirstAndLastChar(psiDocTag.getText().replace("@param", "").replace("@Param", "").replace(paramName, "").replace(":", "").replace("*", "").replace("\n", " "), ' ').trim();
                     if(trim.contains("@link")){
-                        return trim.substring(0,trim.indexOf("{{@link"));
+                        return trim.substring(0,trim.indexOf("{@link")).split("@Exp")[0];
                     }else{
-                        return trim;
+                        return trim.split("@Exp")[0];
                     }
                 }
             }
         }
         return "";
     }
+
+    public static String getParamExp(PsiMethod psiMethodTarget, String paramName){
+        if(psiMethodTarget.getDocComment()!=null) {
+            PsiDocTag[] psiDocTags = psiMethodTarget.getDocComment().getTags();
+            for (PsiDocTag psiDocTag : psiDocTags) {
+                if ((psiDocTag.getText().contains("@param") || psiDocTag.getText().contains("@Param")) && (!psiDocTag.getText().contains("[")) && psiDocTag.getText().contains(paramName)) {
+                    String trim = trimFirstAndLastChar(psiDocTag.getText().replace("@param", "").replace("@Param", "").replace(paramName, "").replace(":", "").replace("*", "").replace("\n", " "), ' ').trim();
+                    if(trim.contains("@Exp")){
+                        trim = subStringWithReg(trim,"@Exp .*");
+                        trim = trim.replace("@Exp","").trim();
+                        if(trim.contains(" ")){
+                            trim = trim.split(" ")[0].trim();
+                        }
+                        if(StringUtils.isNotBlank(trim)){
+                            return trim;
+                        }
+                    }
+                }
+            }
+        }
+        return "";
+    }
+
+
 
     public static List<ParamSelectValue> getParamEnumValues(PsiMethod psiMethodTarget, String paramName,Project project){
         if(psiMethodTarget.getDocComment()!=null) {
@@ -138,8 +163,8 @@ public class DesUtil {
 
     private static List<ParamSelectValue> getSelectValuesFromLink(Project project, String trim) {
         if(trim.contains("@link")){
-            trim = subStringWithReg(trim, "@link.*?}}").trim();
-            trim = trim.replace("@link","").replace("}}","").trim();
+            trim = subStringWithReg(trim, "@link.*?}").trim();
+            trim = trim.replace("@link","").replace("}","").trim();
             List<ParamSelectValue> list = getSelectValueFromPsiClass(project, trim);
             if (list != null) return list;
         }
@@ -149,14 +174,20 @@ public class DesUtil {
     @Nullable
     private static List<ParamSelectValue> getSelectValueFromPsiClass(Project project, String trim) {
         PsiClass psiClassChild = JavaPsiFacade.getInstance(project).findClass(trim, GlobalSearchScope.allScope(project));
+        if(Objects.isNull(psiClassChild)){
+            return Collections.emptyList();
+        }
         if(psiClassChild.isEnum()){
             PsiField[] allFields = psiClassChild.getAllFields();
             List<ParamSelectValue> list = new ArrayList<>();
             for (PsiField filed : allFields) {
                 if(filed instanceof PsiEnumConstant){
                     PsiExpressionList argumentList = ((PsiEnumConstant) filed).getArgumentList();
+                    if(Objects.isNull(argumentList)){
+                        continue;
+                    }
                     PsiExpression[] expressions = argumentList.getExpressions();
-                    if(expressions.length>1){
+                    if(Objects.nonNull(expressions) && expressions.length>1){
                         ParamSelectValue selectValue = new ParamSelectValue();
                         selectValue.setValue(expressions[0].getText());
                         selectValue.setValueDescription(expressions[1].getText());
@@ -214,7 +245,7 @@ public class DesUtil {
                 if(fileText.contains("@Exp")){
                     fileText = fileText.substring(0,fileText.indexOf("@Exp"));
                 }
-                return trimFirstAndLastChar(fileText.replace("*", "").replace("/", "").replace(" ", "").replace("\n", ",").replace("\t", ""), ',').split("\\{\\{@link")[0].split("@see")[0];
+                return trimFirstAndLastChar(fileText.replace("*", "").replace("/", "").replace(" ", "").replace("\n", ",").replace("\t", ""), ',').split("\\{@link")[0].split("@see")[0];
             }
         }
         return "";
@@ -232,6 +263,8 @@ public class DesUtil {
                         substring = split[1].trim();
                         if(substring.contains("*")){
                             substring = substring.split("\\*")[0];
+                            return substring;
+                        }else{
                             return substring;
                         }
                     }

@@ -4,11 +4,11 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.dugq.exception.ErrorException;
 import com.dugq.pojo.AmsApiSearchParam;
 import com.dugq.pojo.EditorParam;
 import com.dugq.pojo.GroupVo;
 import com.dugq.pojo.SimpleApiVo;
-import com.dugq.util.ApiParamBuildUtil;
 import com.dugq.util.HttpClientUtil;
 import com.intellij.openapi.project.Project;
 
@@ -40,8 +40,7 @@ public class ApiEditorService {
             JSONObject jsonObject1 = HttpClientUtil.sendPost(editorUrl, jsonObject);
             System.out.println(jsonObject1);
         } catch (IOException e) {
-            ApiParamBuildUtil.error("保存失败",project);
-            throw new RuntimeException();
+            throw new ErrorException(null,null,"链接ams错误");
         }
     }
 
@@ -51,7 +50,7 @@ public class ApiEditorService {
         try {
             HttpClientUtil.sendPost(addUrl,jsonObject);
         } catch (IOException e) {
-            ApiParamBuildUtil.error("保存失败",project);
+            throw new ErrorException(null,null,"链接ams错误");
         }
     }
 
@@ -64,8 +63,7 @@ public class ApiEditorService {
             String groupList = result.getString("apiList");
             return JSONArray.parseArray(groupList, SimpleApiVo.class);
         } catch (IOException e) {
-            ApiParamBuildUtil.error("搜索失败",project);
-            throw new RuntimeException();
+            throw new ErrorException(null,null,"链接ams错误");
         }
     }
 
@@ -80,8 +78,7 @@ public class ApiEditorService {
             String groupList = result.getString("groupList");
             return JSONArray.parseArray(groupList, GroupVo.class);
         } catch (IOException e) {
-            ApiParamBuildUtil.error("搜索失败",project);
-            throw new RuntimeException();
+            throw new ErrorException(null,null,"链接ams错误");
         }
     }
 }
