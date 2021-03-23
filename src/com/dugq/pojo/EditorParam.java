@@ -8,6 +8,11 @@ import java.util.List;
  */
 
 public class EditorParam implements Serializable {
+
+    private static final long serialVersionUID = 8568908311180247085L;
+    //1： 更新 2：新增
+    private int type;
+
    private Integer projectID= 118;
    private Integer groupID = 861;
    private Integer apiID;
@@ -36,6 +41,14 @@ public class EditorParam implements Serializable {
     private List mockRule;
     private Object mockResult= new Object();
     private Object mockConfig= new Object();
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
 
     public List getApiHeader() {
         return apiHeader;

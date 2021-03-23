@@ -9,6 +9,8 @@ import com.dugq.pojo.AmsApiSearchParam;
 import com.dugq.pojo.EditorParam;
 import com.dugq.pojo.GroupVo;
 import com.dugq.pojo.SimpleApiVo;
+import com.dugq.util.ApiParamBuildUtil;
+import com.dugq.util.ApiUtils;
 import com.dugq.util.HttpClientUtil;
 import com.intellij.openapi.project.Project;
 
@@ -34,6 +36,16 @@ public class ApiEditorService {
             SerializerFeature.WriteMapNullValue
     };
 
+    public static void uploadAPI(Project project, EditorParam param, List<GroupVo> groupVos){
+        if (param.getType()==1){
+            editAPI(project,param);
+        }else{
+            GroupVo groupVo = ApiUtils.getGroupVo(groupVos,param.getApiURI());
+            param.setGroupID(groupVo.getGroupID());
+            addAPI(project,param);
+        }
+    }
+
     public static void editAPI(Project project, EditorParam param){
         JSONObject jsonObject = JSONObject.parseObject(JSON.toJSONString(param,features));
         try {
@@ -49,6 +61,7 @@ public class ApiEditorService {
         JSONObject jsonObject = JSONObject.parseObject(text);
         try {
             HttpClientUtil.sendPost(addUrl,jsonObject);
+            ApiParamBuildUtil.success("上传接口:"+param.getApiURI()+".成功",project);
         } catch (IOException e) {
             throw new ErrorException(null,null,"链接ams错误");
         }

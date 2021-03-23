@@ -230,6 +230,23 @@ public class ApiParamBuildUtil {
         return 13;
     }
 
+    public static String getType(Integer type) {
+        switch (type){
+            case 0:return "String";
+            case 2:return "JSON";
+            case 3:return "int";
+            case 4:return "float";
+            case 5:return "double";
+            case 6:return "Time";
+            case 8:return "boolean";
+            case 9:return "byte";
+            case 10:return "short";
+            case 11:return "long";
+            case 12:return "Collection";
+            default:return "UNKNOWN";
+        }
+    }
+
     private static NotificationGroup notificationGroup;
 
     static {

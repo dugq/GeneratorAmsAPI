@@ -90,10 +90,12 @@ public class DesUtil {
             PsiDocTag[] psiDocTags = psiMethodTarget.getDocComment().getTags();
             for (PsiDocTag psiDocTag : psiDocTags) {
                 if (psiDocTag.getText().contains("@Return") || psiDocTag.getText().contains("@return")) {
-                    return trimFirstAndLastChar(psiDocTag.getText().replace("@return", "").replace("@Return", "").replace(":", "").replace("*", "").replace("\n", " "), ' ');
+                    String s = trimFirstAndLastChar(psiDocTag.getText().replace("@return", "").replace("@Return", "").replace(":", "").replace("*", "").replace("\n", " "), ' ');
+                    return trimFirstAndLastChar(s,',');
                 }
             }
-            return trimFirstAndLastChar(psiMethodTarget.getDocComment().getText().split("@")[0].replace("@Return", "").replace("@return", "").replace(":", "").replace("*", "").replace("/", "").replace("\n", " "), ' ').trim();
+            String s = trimFirstAndLastChar(psiMethodTarget.getDocComment().getText().split("@")[0].replace("@Return", "").replace("@return", "").replace(":", "").replace("*", "").replace("/", "").replace("\n", " "), ' ').trim();
+            return trimFirstAndLastChar(s,',');
         }
         return null;
     }
@@ -113,9 +115,11 @@ public class DesUtil {
                 if ((psiDocTag.getText().contains("@param") || psiDocTag.getText().contains("@Param")) && (!psiDocTag.getText().contains("[")) && psiDocTag.getText().contains(paramName)) {
                     String trim = trimFirstAndLastChar(psiDocTag.getText().replace("@param", "").replace("@Param", "").replace(paramName, "").replace(":", "").replace("*", "").replace("\n", " "), ' ').trim();
                     if(trim.contains("@link")){
-                        return trim.substring(0,trim.indexOf("{@link")).split("@Exp")[0];
+                        String s = trim.substring(0, trim.indexOf("{@link")).split("@Exp")[0];
+                        return trimFirstAndLastChar(s,',');
                     }else{
-                        return trim.split("@Exp")[0];
+                        String s = trim.split("@Exp")[0];
+                        return trimFirstAndLastChar(s,',');
                     }
                 }
             }
@@ -245,7 +249,8 @@ public class DesUtil {
                 if(fileText.contains("@Exp")){
                     fileText = fileText.substring(0,fileText.indexOf("@Exp"));
                 }
-                return trimFirstAndLastChar(fileText.replace("*", "").replace("/", "").replace(" ", "").replace("\n", ",").replace("\t", ""), ',').split("\\{@link")[0].split("@see")[0];
+                String s = trimFirstAndLastChar(fileText.replace("*", "").replace("/", "").replace(" ", "").replace("\n", ",").replace("\t", ""), ',').split("\\{@link")[0].split("@see")[0];
+                return trimFirstAndLastChar(s,',');
             }
         }
         return "";

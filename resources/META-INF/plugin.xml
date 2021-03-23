@@ -22,12 +22,18 @@
 <!--    <depends>com.intellij.modules.vcs</depends>-->
 
 <extensions defaultExtensionNs="com.intellij">
-  <!-- Add your extensions here -->
+  <!--canCloseContents 允许用户关闭-->
+  <toolWindow canCloseContents="true" anchor="bottom"
+              id="ams"
+              factoryClass="com.dugq.component.WindowFactoryComponent">
+  </toolWindow>
 </extensions>
-
 <actions>
   <!-- Add your actions here -->
-  <action id="uploadAPI" class="com.dugq.GeneratorSingleApi" text="上传ams接口">
+  <action id="printAPI" class="com.dugq.PrintApiAction" text="打印ams接口">
+    <add-to-group group-id="GenerateGroup" anchor="first"/>
+  </action>
+  <action id="uploadAPI" class="com.dugq.UploadApiAction" text="上传ams接口">
     <add-to-group group-id="GenerateGroup" anchor="first"/>
   </action>
 </actions>
