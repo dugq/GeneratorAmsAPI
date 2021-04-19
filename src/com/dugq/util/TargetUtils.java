@@ -30,6 +30,10 @@ public class TargetUtils {
         }
         //获取当前方法
         PsiMethod containingMethod = PsiTreeUtil.getParentOfType(psiFile.findElementAt(editor.getCaretModel().getOffset()), PsiMethod.class);
+        if ((Objects.isNull(containingMethod))){
+            ApiParamBuildUtil.error("请选择method！",project);
+            throw new RuntimeException();
+        }
         return new TargetBean(containingClass,containingMethod);
     }
 

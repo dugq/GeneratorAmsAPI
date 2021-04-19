@@ -87,6 +87,9 @@ public class NormalTypes {
         skipParams.add("HttpServletRequest");
         skipParams.add("Model");
         skipParams.add("HttpServletResponse");
+
+        skipParams.add("KjjHttpRequest");
+        skipParams.add("KjjHttpResponse");
     }
 
     static {

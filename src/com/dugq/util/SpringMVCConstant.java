@@ -30,4 +30,8 @@ public interface SpringMVCConstant {
 
     String PathVariable="org.springframework.web.bind.annotation.PathVariable";
 
+    String AdvancedFeign = "cn.com.duiba.boot.netflix.feign.AdvancedFeignClient";
+
+    String AdvancedFeignShort = "AdvancedFeignClient";
+
 }

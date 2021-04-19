@@ -33,4 +33,14 @@ public enum  RequestType {
         }
         return null;
     }
+
+    public static String getDescByType(Integer type){
+        if (type==1){
+            return get.desc;
+        }
+        if (type==0){
+            return post.getDesc();
+        }
+        return "UNKNOWN";
+    }
 }

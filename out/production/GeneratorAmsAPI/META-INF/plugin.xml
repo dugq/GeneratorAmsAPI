@@ -1,41 +1,61 @@
 <idea-plugin>
 <id>com.dugq.dugq</id>
 <name>generatorAmsAPI</name>
-<version>3.3</version>
+<version>3.5.1</version>
 <vendor email="dgqngu@163.com" url="http://www.dui88.com">兑吧</vendor>
 
 <description>
-  this is a test action！this is a test action！this is a test action！this is a test action！
+  1、修复打印时会弹出更新弹层的bug
+  2、优化AMS窗口，并更新为KJJ（客集集）
+  3、增加接口自动生成测试脚本功能
+  4、修复本地debug时卡死的问题
 </description>
+
+  <change-notes>
+    修复bug：KjjHttpRequest 和 KjjHttpResponse 不能正常使用的问题
+  </change-notes>
 
 <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
      on how to target different products -->
 
-<idea-version since-build="145.0"/>
+<idea-version since-build="193.0"/>
 
-<!--    <depends>com.intellij.modules.lang</depends>-->
-
-<!--    <depends>com.intellij.modules.java</depends>-->
-
-<!--    <depends>com.intellij.modules.xml</depends>-->
-
-<!--    <depends>com.intellij.modules.vcs</depends>-->
+  <projectListeners>
+    <listener class="com.dugq.listener.InitListener"
+              topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener" />
+  </projectListeners>
 
 <extensions defaultExtensionNs="com.intellij">
+
+
+  <projectService serviceImplementation="com.dugq.service.TestApiService"/>
+
+
   <!--canCloseContents 允许用户关闭-->
-  <toolWindow canCloseContents="true" anchor="bottom"
-              id="ams"
+  <toolWindow canCloseContents="false" anchor="bottom" order="last"
+              id="KJJ"
               factoryClass="com.dugq.component.WindowFactoryComponent">
   </toolWindow>
+
 </extensions>
 <actions>
+  <group id="KJJ menu group">
+    <action id="clearOut" class="com.dugq.action.ClearAction" text="Clean">
+    </action>
+  </group>
   <!-- Add your actions here -->
-  <action id="printAPI" class="com.dugq.PrintApiAction" text="打印ams接口">
+  <action id="testAPI" class="com.dugq.action.TestApiAction" text="测试接口">
     <add-to-group group-id="GenerateGroup" anchor="first"/>
   </action>
-  <action id="uploadAPI" class="com.dugq.UploadApiAction" text="上传ams接口">
+
+  <action id="printAPI" class="com.dugq.action.PrintApiAction" text="打印ams接口">
     <add-to-group group-id="GenerateGroup" anchor="first"/>
   </action>
+  <action id="uploadAPI" class="com.dugq.action.UploadApiAction" text="上传ams接口">
+    <add-to-group group-id="GenerateGroup" anchor="first"/>
+  </action>
+
+
 </actions>
 <depends>com.intellij.modules.platform</depends>
 <depends>com.intellij.modules.java</depends>

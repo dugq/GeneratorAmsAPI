@@ -1,16 +1,13 @@
 package com.dugq.util;
 
-import com.dugq.ams.ApiEditorService;
 import com.dugq.component.SelectInputComponent;
 import com.dugq.exception.ErrorException;
 import com.dugq.exception.StopException;
 import com.dugq.pojo.EditorParam;
 import com.dugq.pojo.GroupVo;
 import com.dugq.pojo.RequestParam;
-import com.dugq.pojo.SimpleApiVo;
 import com.dugq.pojo.enums.RequestType;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.*;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -19,10 +16,8 @@ import org.apache.commons.lang.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Created by dugq on 2021/3/23.
@@ -65,34 +60,10 @@ public class ApiUtils {
         List<RequestParam> returnList = getReturnList(project, containingMethod);
         param.setApiResultParam(returnList);
         param.setApiSuccessMock(Param2JSON.param2Json(returnList).toJSONString());
-        List<SimpleApiVo> simpleApiVos = getSimpleApiVos(project, uri);
-        if(CollectionUtils.isNotEmpty(simpleApiVos)){
-            if(simpleApiVos.size()>1){
-                throw new ErrorException(containingMethod,null,"存在多个相同URI的API，无法添加！！！");
-            }
-            int update = Messages.showDialog("请选择是否更新接口:"+uri, "存在相同uri接口，是否更新？", new String[]{"是", "否"}, 0, null);
-            if (update==0){
-                SimpleApiVo simpleApiVo = simpleApiVos.get(0);
-                param.setGroupID(simpleApiVo.getGroupID());
-                param.setApiID(simpleApiVo.getApiID());
-                param.setType(1);
-                return param;
-            }else{
-                throw new ErrorException(containingMethod,null,"存在同名接口"+uri+"，无法添加！！！");
-            }
-
-        }
         param.setType(2);
         return param;
     }
 
-    private static List<SimpleApiVo> getSimpleApiVos(Project project, String uri) {
-        List<SimpleApiVo> simpleApiVos = ApiEditorService.amsApiSearchParam(project, uri);
-        if (Objects.isNull(simpleApiVos)){
-            return Collections.emptyList();
-        }
-        return simpleApiVos.stream().filter(vo->StringUtils.equals(vo.getApiURI(),uri)).collect(Collectors.toList());
-    }
 
     public static GroupVo getGroupVo(List<GroupVo> groupVos, String uri) {
         SelectInputComponent comboBox = new SelectInputComponent(groupVos,uri);

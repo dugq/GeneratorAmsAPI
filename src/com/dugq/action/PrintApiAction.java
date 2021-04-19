@@ -1,10 +1,10 @@
-package com.dugq;
+package com.dugq.action;
 
-import com.dugq.component.WindowComponent;
 import com.dugq.pojo.EditorParam;
 import com.dugq.pojo.TargetBean;
+import com.dugq.util.APIPrintUtil;
 import com.dugq.util.ApiUtils;
-import com.dugq.util.PrintUtil;
+import com.dugq.util.ErrorPrintUtil;
 import com.dugq.util.TargetUtils;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -26,18 +26,16 @@ public class PrintApiAction extends AnAction {
         Editor editor = event.getData(PlatformDataKeys.EDITOR);
         TargetBean targetBean = TargetUtils.getTargetBean(editor, project);
         if (Objects.isNull(targetBean.getContainingMethod())){
-            WindowComponent.printLine("请选择方法！");
+            ErrorPrintUtil.printLine("请选择request handler mapping！",project);
             return;
         }
         EditorParam apiParam;
         try {
             apiParam = ApiUtils.getApiParam(project, targetBean.getContainingMethod(),targetBean.getContainingClass());
         }catch (Exception e){
-            WindowComponent.printLine(e.getMessage());
-            e.printStackTrace();
+            ErrorPrintUtil.printLine(e.getMessage(),project);
             return;
         }
-        PrintUtil.print(apiParam);
-
+        APIPrintUtil.print(apiParam,project);
     }
 }
