@@ -3,6 +3,8 @@ package com.dugq.util;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.dugq.pojo.RequestParam;
+import com.dugq.requestmapping.param.bean.ParamBean;
+import com.intellij.openapi.project.Project;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -75,4 +77,26 @@ public class Param2PrintJSON {
         return value;
     }
 
+    public static JSONObject param2Json4RPC(List<ParamBean> paramBeanList, Project project) {
+        if (CollectionUtils.isEmpty(paramBeanList)){
+            return new JSONObject();
+        }
+        JSONObject jsonObject = new JSONObject();
+        for (ParamBean paramBean : paramBeanList) {
+            if (paramBean.isPrimitive()){
+                jsonObject.put("_p"+paramBean.getIndex(),MyPsiTypesUtils.getDefaultValue(paramBean.getParamPsiType()));
+            }else if (MyPsiTypesUtils.isCollection(paramBean.getParamPsiType(),project) || MyPsiTypesUtils.isArray(paramBean.getParamPsiType())){
+                JSONArray subJson = new JSONArray();
+                if (paramBean.isChildPrimitive()){
+                    subJson.add(MyPsiTypesUtils.getDefaultValue(paramBean.getChildType()));
+                }else{
+                    subJson.add(paramBean.getJsonBody());
+                }
+                jsonObject.put("_p"+paramBean.getIndex(),subJson);
+            }else{
+                jsonObject.put("_p"+paramBean.getIndex(),paramBean.getJsonBody());
+            }
+        }
+        return jsonObject;
+    }
 }

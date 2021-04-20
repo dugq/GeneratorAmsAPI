@@ -1,6 +1,14 @@
 package com.dugq.util;
 
 import com.google.gson.JsonObject;
+import com.intellij.openapi.project.Project;
+import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiArrayType;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiType;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiUtil;
+import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NonNls;
 
 import java.sql.Timestamp;
@@ -17,7 +25,7 @@ import java.util.Map;
  * @author chengsheng@qbb6.com
  * @date 2019/1/30 9:58 AM
  */
-public class NormalTypes {
+public class MyPsiTypesUtils {
 
     @NonNls
     public static final Map<String, Object> normalTypes = new HashMap<>();
@@ -87,6 +95,7 @@ public class NormalTypes {
         skipParams.add("HttpServletRequest");
         skipParams.add("Model");
         skipParams.add("HttpServletResponse");
+        skipParams.add("ModelAndView");
 
         skipParams.add("KjjHttpRequest");
         skipParams.add("KjjHttpResponse");
@@ -121,11 +130,30 @@ public class NormalTypes {
         collectTypesPackages.put("java.util.Map","Map");
     }
 
+    /**
+     * Spring MVC提供的额外对象，不需要解析
+     */
+    public static boolean isSkipType(PsiType psiType){
+        return  skipParams.contains(psiType.getPresentableText());
+    }
 
+    public static boolean isSkipFiled(String filedName){
+        return skipFiled.contains(filedName);
+    }
 
-
+    /**
+     *  java primitive, String, 等直接变量都被认为是基本类型
+     */
     public static boolean isNormalType(String typeName) {
         return normalTypes.containsKey(typeName);
+    }
+
+    /**
+     * java primitive, String, date, 等直接变量都被认为是基本类型
+     */
+    public static boolean isPrimitiveType(PsiType psiType) {
+        String presentableText = psiType.getPresentableText();
+        return normalTypes.containsKey(presentableText) || isDate(psiType);
     }
 
     /**
@@ -211,6 +239,77 @@ public class NormalTypes {
             mock.addProperty("mock", "mock");
         }
         return mock;
+    }
+
+    public static boolean isList(PsiType psiType, Project project){
+       return JavaPsiFacade.getInstance(project).getElementFactory().createTypeFromText("java.util.List", null).isAssignableFrom(psiType);
+    }
+
+    public static boolean isSet(PsiType psiType, Project project){
+        return JavaPsiFacade.getInstance(project).getElementFactory().createTypeFromText("java.util.Set", null).isAssignableFrom(psiType);
+    }
+
+    public static boolean isMap(PsiType psiType, Project project){
+        return JavaPsiFacade.getInstance(project).getElementFactory().createTypeFromText("java.util.Map", null).isAssignableFrom(psiType);
+    }
+
+    public static boolean isCollection(PsiType psiType, Project project){
+        return isSet(psiType,project) || isList(psiType,project);
+    }
+
+    public static boolean isArray(PsiType psiType){
+        return psiType instanceof PsiArrayType;
+    }
+
+    public static PsiType getArrayType(PsiType psiType){
+        if (!isArray(psiType)){
+            return null;
+        }
+        PsiArrayType arrayType = (PsiArrayType) psiType;
+        return arrayType.getDeepComponentType();
+    }
+
+    public static boolean isDate(PsiType psiType){
+        return dateList.contains(psiType.getPresentableText());
+    }
+
+    public static PsiType getChildTypes(PsiType psiType,Project project){
+        if (isArray(psiType)){
+            return psiType.getDeepComponentType();
+        }else if(isCollection(psiType,project)){
+            return PsiUtil.extractIterableTypeParameter(psiType,false);
+        }
+        return null;
+    }
+
+    /**
+     * 获取类型简写
+     */
+    public static String getPresentType(PsiType childTypes) {
+        if (isDate(childTypes)){
+            return "date";
+        }
+        return childTypes.getPresentableText().toLowerCase();
+    }
+
+    public static PsiClass getClassByType(PsiType psiType,Project project){
+        return JavaPsiFacade.getInstance(project).findClass(psiType.getCanonicalText(),GlobalSearchScope.allScope(project));
+    }
+
+    public static Object getDefaultValue(PsiType psiType) {
+        if (isDate(psiType)){
+            return new Date().getTime();
+        }
+        if (StringUtils.equals(psiType.getPresentableText(), "String")){
+            return "string";
+        }
+        if (StringUtils.equals(psiType.getPresentableText(), "Boolean") || StringUtils.equals(psiType.getPresentableText(), "boolean")){
+            return true;
+        }
+        if (StringUtils.equals(psiType.getPresentableText(), "Character") || StringUtils.equals(psiType.getPresentableText(), "char")){
+            return 'a';
+        }
+        return 1;
     }
 
 }

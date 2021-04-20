@@ -1,7 +1,9 @@
 package com.dugq.action;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.dugq.component.TestApiPanel;
+import com.dugq.exception.StopException;
 import com.dugq.pojo.EditorParam;
 import com.dugq.pojo.TargetBean;
 import com.dugq.pojo.enums.RequestType;
@@ -11,6 +13,7 @@ import com.dugq.requestmapping.param.bean.ParamBean;
 import com.dugq.service.TestApiService;
 import com.dugq.util.ApiUtils;
 import com.dugq.util.ErrorPrintUtil;
+import com.dugq.util.FileUtil;
 import com.dugq.util.Param2PrintJSON;
 import com.dugq.util.SpringMVCConstant;
 import com.dugq.util.TargetUtils;
@@ -34,44 +37,53 @@ public class TestApiAction  extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent event) {
         Project project = event.getProject();
-        Editor editor = event.getData(PlatformDataKeys.EDITOR);
-        if(Objects.isNull(editor)){
-            return;
-        }
-        TargetBean targetBean = TargetUtils.getTargetBean(editor, project);
-        if (targetBean.getContainingClass().hasAnnotation(SpringMVCConstant.AdvancedFeign)){
-            RequestMapping feignMapping = getFeign(targetBean);
-            TestApiUtil.show(project);
-            JSONObject request = new JSONObject();
-            TestApiPanel testApiPanel = TestApiUtil.getTestApiPanel(project);
-            TestApiService testApiService = TestApiService.getInstance(project);
-            testApiPanel.clearAndSetParam(testApiService.dealRequestParam(request));
-            testApiPanel.setUri(feignMapping.getUri());
-            testApiPanel.setRequestMethod( RequestType.getDescByType(feignMapping.getReqType()));
-        }else{
-            EditorParam param = getRestApiEditorParam(project, targetBean);
-            if (param == null) return;
-            TestApiUtil.show(project);
-            JSONObject request = Param2PrintJSON.param2Json(param.getApiRequestParam());
-            TestApiPanel testApiPanel = TestApiUtil.getTestApiPanel(project);
-            TestApiService testApiService = TestApiService.getInstance(project);
-            testApiPanel.clearAndSetParam(testApiService.dealRequestParam(request));
-            testApiPanel.setUri(param.getApiURI());
-            testApiPanel.setRequestMethod( RequestType.getDescByType(param.getApiRequestType()));
+        TestApiPanel testApiPanel = TestApiUtil.getTestApiPanel(project);
+        testApiPanel.setDefaultHost(FileUtil.getDefaultPort(project));
+        try {
+            Editor editor = event.getData(PlatformDataKeys.EDITOR);
+            if (Objects.isNull(editor)) {
+                return;
+            }
+            TargetBean targetBean = TargetUtils.getTargetBean(editor, project);
+            if (targetBean.getContainingClass().hasAnnotation(SpringMVCConstant.AdvancedFeign)) {
+                RequestMapping feignMapping = getFeign(targetBean, project);
+                TestApiUtil.show(project);
+                JSONObject request = Param2PrintJSON.param2Json4RPC(feignMapping.getParamBeanList(),project);
+                String paramBody = JSONObject.toJSONString(request, SerializerFeature.PrettyFormat, SerializerFeature.WriteMapNullValue);
+                paramBody = paramBody.replaceAll("\t","  ");
+                testApiPanel.clearAndSetParam(paramBody);
+                testApiPanel.setUri(feignMapping.getUri());
+                testApiPanel.setRequestMethod(RequestType.getDescByType(feignMapping.getReqType()));
+            } else {
+                EditorParam param = getRestApiEditorParam(project, targetBean);
+                if (param == null) return;
+                TestApiUtil.show(project);
+                JSONObject request = Param2PrintJSON.param2Json(param.getApiRequestParam());
+                TestApiService testApiService = TestApiService.getInstance(project);
+                testApiPanel.clearAndSetParam(testApiService.dealRequestParam(request));
+                testApiPanel.setUri(param.getApiURI());
+                testApiPanel.setRequestMethod(RequestType.getDescByType(param.getApiRequestType()));
+            }
+        } catch (StopException e) {
+            //ignore
+        }catch (Exception e){
+            ErrorPrintUtil.printException(e,project);
         }
     }
 
-    private RequestMapping getFeign(TargetBean targetBean) {
+    @NotNull
+    private RequestMapping getFeign(TargetBean targetBean, Project project) {
         RequestMapping editorParam = new RequestMapping();
         String className = targetBean.getContainingClass().getName();
         String methodName = targetBean.getContainingMethod().getName();
         if (Objects.isNull(className)){
-            return null;
+            ErrorPrintUtil.printLine("请选择类",project);
+            throw new StopException();
         }
         editorParam.setUri("/"+lowerFirst(className)+"/"+methodName);
-        editorParam.setReqType(RequestType.post.getType());
+        editorParam.setReqType(RequestType.get.getType());
 
-        List<ParamBean> list = RPCParamBuildUtil.getList(targetBean.getContainingMethod());
+        List<ParamBean> list = RPCParamBuildUtil.getList(targetBean.getContainingMethod(),project);
         editorParam.setParamBeanList(list);
         return editorParam;
     }
@@ -92,7 +104,7 @@ public class TestApiAction  extends AnAction {
         try {
             param = ApiUtils.getApiParam(project, targetBean.getContainingMethod(),targetBean.getContainingClass());
         }catch (Exception e){
-            ErrorPrintUtil.printLine(e.getMessage(),project);
+            ErrorPrintUtil.printException(e,project);
             return null;
         }
         return param;

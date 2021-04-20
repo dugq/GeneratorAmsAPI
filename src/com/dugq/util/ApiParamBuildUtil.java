@@ -54,7 +54,7 @@ public class ApiParamBuildUtil {
         if(filedType.getPresentableText().equals("Class<Void>")){
             return Collections.emptyList();
         }
-        if(filedType instanceof PsiPrimitiveType || NormalTypes.isNormalType(filedType.getPresentableText())){ //基本类型
+        if(filedType instanceof PsiPrimitiveType || MyPsiTypesUtils.isNormalType(filedType.getPresentableText())){ //基本类型
             RequestParam param = new RequestParam();
             param.setParamKey(getParamKey(parentKey,paramKey));
             param.setParamType(getType(filedType.getPresentableText()));
@@ -66,7 +66,7 @@ public class ApiParamBuildUtil {
                 param.setParamNotNull(0);
             }
             return singletonList(param);
-        }else if(NormalTypes.dateList.contains(filedType.getPresentableText())){ //时间
+        }else if(MyPsiTypesUtils.dateList.contains(filedType.getPresentableText())){ //时间
             RequestParam param = new RequestParam();
             param.setParamKey(getParamKey(parentKey,paramKey));
             param.setParamType(getType(filedType.getPresentableText()));
@@ -160,9 +160,9 @@ public class ApiParamBuildUtil {
         if(Objects.isNull(psiClassChild)){
             throw new ErrorException(null,null,"缺少泛型指定："+paramKey);
         }
-        if(psiClassChild instanceof PsiPrimitiveType || NormalTypes.isNormalType(psiClassChild.getName())){ //基本类型
+        if(psiClassChild instanceof PsiPrimitiveType || MyPsiTypesUtils.isNormalType(psiClassChild.getName())){ //基本类型
             return paramList;
-        }else if(NormalTypes.dateList.contains(psiClassChild.getName())){
+        }else if(MyPsiTypesUtils.dateList.contains(psiClassChild.getName())){
             return paramList;
         }else if(psiClassChild.getName().startsWith("List") || psiClassChild.getName().startsWith("Set")){
             String sourceChildType = childGenericTypes.get(0);
@@ -173,7 +173,7 @@ public class ApiParamBuildUtil {
         }else{
             PsiField[] allFields = psiClassChild.getAllFields();
             for (PsiField field : allFields) {
-                if(NormalTypes.skipFiled.contains(field.getName())){
+                if(MyPsiTypesUtils.skipFiled.contains(field.getName())){
                     continue;
                 }
                 List<RequestParam> params = getParamListFromFiled(field, project, parentKey, field.getName(), childGenericTypes);

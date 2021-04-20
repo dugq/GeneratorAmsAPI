@@ -3,11 +3,14 @@ package com.dugq.util;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.dugq.exception.ErrorException;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 
 import javax.swing.*;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -16,20 +19,35 @@ import java.util.Objects;
  * Created by dugq on 2021/4/7.
  */
 public class JSONPrintUtils {
-    private static final List<Character> skipList = new ArrayList<>();
-
+    private static JsonParser jsonParser = new JsonParser();
+    private static Gson gson = new GsonBuilder().setPrettyPrinting().create();
     static {
     }
 
-    public static void printJson(String jsonObject, JTextArea textArea){
+    public static void printCustomJson(String jsonObject, JTextArea textArea){
         if (StringUtils.isBlank(jsonObject)){
             appendLine(textArea,"NO RESPONSE");
         }else{
-            printJson(JSON.parseObject(jsonObject),textArea);
+            JsonElement parse = jsonParser.parse(jsonObject);
+            JsonElement jsonElement;
+            if (parse.isJsonArray()){
+                jsonElement = parse.getAsJsonArray();
+            }else if (parse.isJsonNull()) {
+                appendLine(textArea,"NO RESPONSE");
+                return;
+            }else if (parse.isJsonPrimitive()) {
+                appendLine(textArea,jsonObject);
+                return;
+            }else{
+                jsonElement = parse.getAsJsonObject();
+            }
+            appendLine(textArea,gson.toJson(jsonElement));
+            //垃圾，现有的工具类不用，非要自己写。大傻逼。
+//            printJson(JSON.parseObject(jsonObject),textArea);
         }
     }
 
-    public static void printJson(JSONObject jsonObject, JTextArea textArea){
+    public static void printCustomJson(JSONObject jsonObject, JTextArea textArea){
         int blankNum=0;
         String jsonString = JSON.toJSONString(jsonObject);
         //标记 key：每一行json的key默认为空字符串，value：每行json的value默认为空字符串， type：标记当前解析字符是属于key还是value。默认是key，在遇到"："字符后变更为value，当遇到"；"后复位为key

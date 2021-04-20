@@ -244,6 +244,12 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
         this.hostFiled.setText(host);
     }
 
+    public void setDefaultHost(String port){
+        if (StringUtils.isBlank(this.hostFiled.getText())){
+            this.hostFiled.setText("http://127.0.0.1:"+port);
+        }
+    }
+
     public String getHost(){
         return this.hostFiled.getText();
     }
@@ -257,12 +263,12 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
     }
 
     public void clearAndSetParam(String param){
-        JSONPrintUtils.printJson(param, requestParamArea);
+        requestParamArea.setText(param);
     }
 
     public void clearAndSetParam(JSONObject param){
         requestParamArea.setText("");
-        JSONPrintUtils.printJson(param, requestParamArea);
+        JSONPrintUtils.printCustomJson(param, requestParamArea);
     }
 
     public String getRequestParam(){
@@ -270,7 +276,7 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
     }
 
     public void setRequestMethod(String httpMethod){
-        requestMethod.setSelectedItem(httpMethod);
+        requestMethod.setSelectedItem(httpMethod.toUpperCase());
     }
 
     public String getRequestMethod(){
@@ -284,7 +290,7 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
 
 
     public void printResponse(String responseBody) {
-        JSONPrintUtils.printJson(responseBody, response);
+        JSONPrintUtils.printCustomJson(responseBody, response);
     }
 
 

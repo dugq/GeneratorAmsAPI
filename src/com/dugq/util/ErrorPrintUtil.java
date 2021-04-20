@@ -27,4 +27,12 @@ public class ErrorPrintUtil extends BasePrintUtil{
     public static void clear(Project project){
         getErrorTextToolPanel(project).clear();
     }
+
+    public static void printException(Exception e, Project project) {
+        printLine(e.getMessage(),project);
+        StackTraceElement[] stackTrace = e.getStackTrace();
+        for (StackTraceElement stackTraceElement : stackTrace) {
+            printLine("\tat   "+stackTraceElement.getClassName()+"#"+stackTraceElement.getMethodName()+"("+stackTraceElement.getFileName()+":"+stackTraceElement.getLineNumber()+")",project);
+        }
+    }
 }

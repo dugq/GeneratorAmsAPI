@@ -32,6 +32,9 @@ public final class TestApiService {
     public void sendCurrentRequest() {
         TestApiPanel testApiPanel = TestApiUtil.getTestApiPanel(this.project);
         String host = testApiPanel.getHost();
+        if (!host.startsWith("http")){
+            host = "http://"+host;
+        }
         String uri = testApiPanel.getUri();
         String url = host + (uri.startsWith("/")?uri:("/"+uri));
         String requestMethod = testApiPanel.getRequestMethod();
@@ -48,11 +51,7 @@ public final class TestApiService {
                 return;
             }
         }catch (Exception e){
-            ErrorPrintUtil.printLine(e.getMessage(),project);
-            StackTraceElement[] stackTrace = e.getStackTrace();
-            for (StackTraceElement stackTraceElement : stackTrace) {
-                ErrorPrintUtil.printLine("\tat   "+stackTraceElement.getClassName()+"#"+stackTraceElement.getMethodName()+"("+stackTraceElement.getFileName()+":"+stackTraceElement.getLineNumber()+")",project);
-            }
+            ErrorPrintUtil.printException(e,project);
             return;
         }
         if (!responseBean.isSuccess()){

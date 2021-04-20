@@ -88,7 +88,7 @@ public class ApiUtils {
                 returnValue.setParamType(ApiParamBuildUtil.getType(returnType.getPresentableText()));
                 returnList.add(returnValue);
             }
-            else if(NormalTypes.isNormalType(returnType.getPresentableText())){
+            else if(MyPsiTypesUtils.isNormalType(returnType.getPresentableText())){
                 RequestParam returnValue = new RequestParam();
                 returnValue.setParamKey(returnType.getPresentableText());
                 returnValue.setParamName(DesUtil.getReturn(containingMethod));
@@ -127,10 +127,10 @@ public class ApiUtils {
         List<RequestParam> queryList = new ArrayList<>();
         PsiParameter[] parameters = containingMethod.getParameterList().getParameters();
         for (PsiParameter psiParameter : parameters) {
-            if(NormalTypes.skipParams.contains(psiParameter.getType().getPresentableText())){
+            if(MyPsiTypesUtils.skipParams.contains(psiParameter.getType().getPresentableText())){
                 continue;
             }
-            if(NormalTypes.skipFiled.contains(psiParameter.getName())){
+            if(MyPsiTypesUtils.skipFiled.contains(psiParameter.getName())){
                 continue;
             }
             List<RequestParam> query = getParam(project, psiParameter,containingMethod);
@@ -154,7 +154,7 @@ public class ApiUtils {
                 query.setParamNotNull(0);
             }
             return ApiParamBuildUtil.singletonList(query);
-        }else if(NormalTypes.isNormalType(psiType.getPresentableText())){
+        }else if(MyPsiTypesUtils.isNormalType(psiType.getPresentableText())){
             //如果是包装类型
             RequestParam query = new RequestParam();
             query.setParamKey(psiParameter.getName());
