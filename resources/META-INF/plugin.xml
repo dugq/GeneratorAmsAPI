@@ -1,7 +1,7 @@
 <idea-plugin>
 <id>com.dugq.dugq</id>
 <name>generatorAmsAPI</name>
-<version>3.5.1</version>
+<version>3.5.2</version>
 <vendor email="dgqngu@163.com" url="http://www.dui88.com">兑吧</vendor>
 
 <description>
@@ -9,6 +9,7 @@
   2、优化AMS窗口，并更新为KJJ（客集集）
   3、增加接口自动生成测试脚本功能
   4、修复本地debug时卡死的问题
+  5、增加RPC接口测试
 </description>
 
   <change-notes>

@@ -90,7 +90,7 @@ public class RPCParamBuildUtil {
             if (MyPsiTypesUtils.isSkipType(fieldType) || MyPsiTypesUtils.isSkipFiled(psiField.getName())){
                 continue;
             }else if((MyPsiTypesUtils.isPrimitiveType(fieldType))){
-                result.put(psiField.getName(),fieldType.getPresentableText());
+                result.put(psiField.getName(),MyPsiTypesUtils.getDefaultValue(fieldType));
             }else if(MyPsiTypesUtils.isArray(psiType) || MyPsiTypesUtils.isCollection(psiType,project)){
                 JSONArray array = new JSONArray();
                 PsiType childTypes = MyPsiTypesUtils.getChildTypes(fieldType,project);
@@ -99,7 +99,7 @@ public class RPCParamBuildUtil {
                     throw new StopException();
                 }
                 if (MyPsiTypesUtils.isPrimitiveType(childTypes)){
-                    array.add(psiType.getPresentableText());
+                    array.add(MyPsiTypesUtils.getDefaultValue(fieldType));
                 }else if(MyPsiTypesUtils.isArray(childTypes) || MyPsiTypesUtils.isCollection(childTypes,project) || MyPsiTypesUtils.isMap(childTypes,project)){
                     ErrorPrintUtil.printLine("参数【"+parentNames+"."+psiField.getName()+"】字段，此插件暂不支持多维数组格式！",project);
                     throw new StopException();

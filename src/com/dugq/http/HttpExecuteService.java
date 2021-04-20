@@ -21,6 +21,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.HttpContext;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.Map;
 import java.util.Objects;
 
@@ -119,7 +120,17 @@ public class HttpExecuteService {
             return "";
         }
         StringBuilder sb = new StringBuilder();
-        params.forEach((key,value)-> sb.append(key).append("=").append(value).append("&"));
+        params.forEach((key,value)-> {
+            Object param = value;
+            String str;
+            if ((value instanceof String) || value.getClass().isPrimitive()){
+                str = value.toString();
+            }else{
+                str = JSON.toJSONString(param);
+            }
+            String encode = URLEncoder.encode(str);
+            sb.append(key).append("=").append(encode).append("&");
+        });
         sb.deleteCharAt(sb.length()-1);
         return sb.toString();
     }
