@@ -1,7 +1,7 @@
 <idea-plugin>
 <id>com.dugq.dugq</id>
 <name>generatorAmsAPI</name>
-<version>3.5.2</version>
+<version>3.5.3</version>
 <vendor email="dgqngu@163.com" url="http://www.dui88.com">兑吧</vendor>
 
 <description>
