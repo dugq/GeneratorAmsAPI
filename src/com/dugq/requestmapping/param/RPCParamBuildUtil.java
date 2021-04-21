@@ -91,7 +91,7 @@ public class RPCParamBuildUtil {
                 continue;
             }else if((MyPsiTypesUtils.isPrimitiveType(fieldType))){
                 result.put(psiField.getName(),MyPsiTypesUtils.getDefaultValue(fieldType));
-            }else if(MyPsiTypesUtils.isArray(psiType) || MyPsiTypesUtils.isCollection(psiType,project)){
+            }else if(MyPsiTypesUtils.isArray(psiType) || MyPsiTypesUtils.isCollection(fieldType,project)){
                 JSONArray array = new JSONArray();
                 PsiType childTypes = MyPsiTypesUtils.getChildTypes(fieldType,project);
                 if (Objects.isNull(childTypes)){
@@ -107,7 +107,7 @@ public class RPCParamBuildUtil {
                     array.add(buildJson(fieldType,project,parentNames+"."+psiField.getName()));
                 }
                 result.put(psiField.getName(), array);
-            }else if(MyPsiTypesUtils.isMap(psiType,project)){
+            }else if(MyPsiTypesUtils.isMap(fieldType,project)){
                 ErrorPrintUtil.printLine("【"+parentNames+"."+psiField.getName()+"】字段是Map，不支持！",project);
                 throw new StopException();
             }else{//其他都是Object

@@ -67,6 +67,7 @@ public class TestApiAction  extends AnAction {
         } catch (StopException e) {
             //ignore
         }catch (Exception e){
+            e.printStackTrace();
             ErrorPrintUtil.printException(e,project);
         }
     }
