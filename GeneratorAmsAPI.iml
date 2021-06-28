@@ -7,11 +7,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/resources" type="java-resource" />
     </content>
-    <orderEntry type="jdk" jdkName="IntelliJ IDEA Community Edition IC-193.5233.102" jdkType="IDEA JDK" />
+    <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="commons-lang3-3.9" level="project" />
-    <orderEntry type="library" name="fastjson-1.2.9" level="project" />
-    <orderEntry type="library" name="fast-md5-2.5" level="project" />
-    <orderEntry type="library" name="dom4j-1.6.1" level="project" />
   </component>
 </module>

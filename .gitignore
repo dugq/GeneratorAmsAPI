@@ -1,0 +1,49 @@
+# maven ignore
+target/
+!libs/sdk-1.1.jar
+*.jar
+*.war
+*.zip
+*.tar
+*.tar.gz
+
+# eclipse ignore
+.settings/
+.project
+.classpath
+
+# idea ignore
+.idea/
+*.ipr
+*.iml
+*.iws
+
+# gradle ignore
+.gradle/
+
+# temp ignore
+*.log
+*.cache
+*.diff
+*.patch
+*.tmp
+
+# system ignore
+.DS_Store
+Thumbs.db
+bin
+build
+.class
+
+#.gitignore
+classes/
+out/
+
+node_modules
+*.map
+
+#rebel ignore
+**/rebel.xml
+gradlew
+gradlew.bat
+gradle/wrapper/gradle-wrapper.properties
