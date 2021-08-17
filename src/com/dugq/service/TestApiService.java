@@ -1,17 +1,22 @@
 package com.dugq.service;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.dugq.bean.ResponseBean;
-import com.dugq.component.TestApiPanel;
+import com.dugq.component.testapi.MainPanel;
+import com.dugq.component.testapi.TestApiPanel;
+import com.dugq.exception.ErrorException;
 import com.dugq.http.HttpExecuteService;
-import com.dugq.util.ErrorPrintUtil;
-import com.dugq.util.MyRandomUtils;
-import com.dugq.util.TestApiUtil;
+import com.dugq.pojo.FeignKeyValueBean;
+import com.dugq.pojo.KeyValueBean;
+import com.dugq.pojo.TestApiBean;
 import com.intellij.openapi.project.Project;
-import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Created by dugq on 2021/4/8.
@@ -28,74 +33,90 @@ public final class TestApiService {
         return project.getService(TestApiService.class);
     }
 
-
-    public void sendCurrentRequest() {
-        TestApiPanel testApiPanel = TestApiUtil.getTestApiPanel(this.project);
-        String host = testApiPanel.getHost();
+    public void sendCurrentRequest(TestApiBean testApiBean, TestApiPanel testApiPanel) throws IOException {
+        final MainPanel mainPanel = testApiPanel.getMainContent();
+        String host = mainPanel.getHost();
+        if (StringUtils.isBlank(host)){
+            throw new ErrorException("请填写host");
+        }
         if (!host.startsWith("http")){
             host = "http://"+host;
         }
-        String uri = testApiPanel.getUri();
+        String uri = testApiBean.getUri();
         String url = host + (uri.startsWith("/")?uri:("/"+uri));
-        String requestMethod = testApiPanel.getRequestMethod();
-        String requestParam = testApiPanel.getRequestParam();
-        Map<String, String> headerMap = testApiPanel.getHeaderMap();
+        String requestMethod = testApiBean.getRequestType().getDesc().toUpperCase();
+        Map<String, String> headerMap = testApiPanel.getHeaders();
         ResponseBean responseBean;
-        try {
-            if (StringUtils.equals(requestMethod,"GET")){
-                responseBean = HttpExecuteService.doGetWithJSONString(url, headerMap, requestParam);
-            }else if (StringUtils.equals(requestMethod,"POST")){
-                responseBean = HttpExecuteService.doPostWithJSONString(url,headerMap,requestParam);
-            }else{
-                ErrorPrintUtil.printLine("HTTP Method is not selected!!!",project);
-                return;
-            }
-        }catch (Exception e){
-            ErrorPrintUtil.printException(e,project);
-            return;
+        if (StringUtils.equals(requestMethod,"GET")){
+            final Map<String, String> paramMap = dealRequestParamMap(testApiBean, testApiPanel);
+            responseBean = HttpExecuteService.sendGet(url, headerMap, paramMap);
+        }else if (StringUtils.equals(requestMethod,"POST")){
+            String requestBody = dealRequestBody(testApiBean.getApiParamBean().getRequestBody(),testApiPanel);
+            responseBean = HttpExecuteService.doPost(url,headerMap,requestBody);
+        }else{
+            throw new ErrorException( "HTTP Method is not selected!!!");
         }
         if (!responseBean.isSuccess()){
-            ErrorPrintUtil.printLine("response status = {} "+responseBean.getStatus(),project);
-            return;
+            throw new ErrorException("response status = {} "+responseBean.getStatus());
         }
-        testApiPanel.printResponse(responseBean.getResponseBody());
+        mainPanel.clearAndPrintResponse(responseBean.getResponseBody());
     }
 
-    public JSONObject dealRequestParam(JSONObject request) {
-        TestApiPanel testApiPanel = TestApiUtil.getTestApiPanel(this.project);
+    private Map<String,String> dealRequestParamMap(TestApiBean requestParams, TestApiPanel testApiPanel) {
+        Map<String,String> paramMap = new HashMap<>();
         Map<String, String> globalParamMap = testApiPanel.getGlobalParamMap();
-        if (MapUtils.isEmpty(request)){
-            return request;
-        }
-        for (Map.Entry<String, Object> entry : request.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-            if (value instanceof String){
-                fillPrimitiveValue(request, globalParamMap, key, (String) value);
+        for (KeyValueBean requestParam : requestParams.getApiParamBean().getRequestParams()) {
+            if (StringUtils.isBlank(requestParam.getValue())){
+                paramMap.put(requestParam.getKey(),globalParamMap.get(requestParam.getKey()));
             }else{
-                Class<?> aClass = value.getClass();
-                System.out.println(aClass.getName());
+                paramMap.put(requestParam.getKey(),requestParam.getValue());
             }
         }
-        return request;
+        for (FeignKeyValueBean requestParam : requestParams.getApiParamBean().getFeignKeyValueBeans()) {
+            if (Objects.isNull(requestParam.getIndex())){
+                continue;
+            }
+            if (StringUtils.isBlank(requestParam.getValue())){
+                paramMap.put("_p"+requestParam.getIndex(),globalParamMap.get(requestParam.getKey()));
+            }else{
+                paramMap.put("_p"+requestParam.getIndex(),requestParam.getValue());
+            }
+        }
+        return paramMap;
     }
 
-    protected void fillPrimitiveValue(JSONObject request, Map<String, String> globalParamMap, String key, String value) {
-        String globalValue = globalParamMap.get(key);
-        if (StringUtils.isNotBlank(globalValue)){
-            request.put(key,globalValue);
-        }else{
-            String type = value;
-            if (type.contains("$&")){
-                type = type.substring(0,type.indexOf("$&"));
-            }
-            switch (type){
-                case "long":request.put(key, MyRandomUtils.randomLong());break;
-                case "int":request.put(key, MyRandomUtils.randomInt());break;
-                case "boolean":request.put(key,MyRandomUtils.randomBoolean());break;
-                case "String":request.put(key,MyRandomUtils.randomString());break;
-                default:System.out.println("type is not support! = "+type);
+    public String dealRequestBody(String requestBody, TestApiPanel testApiPanel) {
+//        if (StringUtils.isBlank(requestBody)){
+//            return null;
+//        }
+//        try {
+//            JSONObject jsonObject = JSONObject.parseObject(requestBody);
+//            Map<String, String> globalParamMap = testApiPanel.getGlobalParamMap();
+//            putDefaultValue(jsonObject,globalParamMap);
+//            return jsonObject.toJSONString();
+//        }catch (Exception e){
+            return requestBody;
+//        }
+    }
+
+    private void putDefaultValue(JSONObject jsonObject, Map<String, String> globalParamMap) {
+        for (String key : jsonObject.keySet()) {
+            final Object jsonValue = jsonObject.get(key);
+            if (jsonValue instanceof JSONArray){
+                final JSONArray jsonArray = (JSONArray) jsonValue;
+                for (Object object : jsonArray) {
+                    if (object instanceof JSONObject){
+                        putDefaultValue((JSONObject)object,globalParamMap);
+                    }
+                }
+            }else if(jsonValue instanceof JSONObject){
+                putDefaultValue((JSONObject)jsonValue,globalParamMap);
+            }else{
+                if (StringUtils.isBlank(jsonObject.getString(key))){
+                    jsonObject.put(key,globalParamMap.get(key));
+                }
             }
         }
     }
+
 }

@@ -1,14 +1,16 @@
 package com.dugq.util;
 
+import com.dugq.exception.ErrorException;
 import com.google.gson.JsonObject;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiArrayType;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiType;
-import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.psi.util.PsiUtil;
+import com.intellij.psi.*;
+import com.intellij.psi.util.ClassUtil;
+import com.intellij.psi.util.PsiTypesUtil;
+import com.intellij.structuralsearch.Scopes;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NonNls;
 
 import java.sql.Timestamp;
@@ -18,14 +20,17 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * 基本类
+ * 各种常用工具类
  *
  * @author chengsheng@qbb6.com
  * @date 2019/1/30 9:58 AM
  */
-public class MyPsiTypesUtils {
+public class MyPsiTypesUtils  {
 
     @NonNls
     public static final Map<String, Object> normalTypes = new HashMap<>();
@@ -51,6 +56,8 @@ public class MyPsiTypesUtils {
      * 跳过request等入参
      */
     public static final List<String> skipParams = new ArrayList<>();
+
+    public static final List<String> NOT_NULL_ANNOTATIONS = new ArrayList<>();
 
 
 
@@ -99,6 +106,12 @@ public class MyPsiTypesUtils {
 
         skipParams.add("KjjHttpRequest");
         skipParams.add("KjjHttpResponse");
+
+        NOT_NULL_ANNOTATIONS.add("javax.validation.constraints.NotNull");
+        NOT_NULL_ANNOTATIONS.add("org.hibernate.validator.constraints.NotNull");
+        NOT_NULL_ANNOTATIONS.add("javax.validation.constraints.NotBlank");
+        NOT_NULL_ANNOTATIONS.add("org.hibernate.validator.constraints.NotBlank");
+        NOT_NULL_ANNOTATIONS.add("javax.validation.constraints.NotEmpty");
     }
 
     static {
@@ -141,19 +154,24 @@ public class MyPsiTypesUtils {
         return skipFiled.contains(filedName);
     }
 
-    /**
-     *  java primitive, String, 等直接变量都被认为是基本类型
-     */
-    public static boolean isNormalType(String typeName) {
-        return normalTypes.containsKey(typeName);
+    public static boolean isParameterDeprecated(PsiParameter psiParameter){
+        return psiParameter.hasAnnotation("java.lang.Deprecated") || (!isPrimitiveType(psiParameter.getType()) && getClassByType(psiParameter.getType()).hasAnnotation("java.lang.Deprecated"));
+    }
+
+    public static boolean isFiledDeprecated(PsiField psiField){
+        return psiField.hasAnnotation("java.lang.Deprecated") || (!isPrimitiveType(psiField.getType()) && getClassByType(psiField.getType()).hasAnnotation("java.lang.Deprecated"));
     }
 
     /**
-     * java primitive, String, date, 等直接变量都被认为是基本类型
+     * java primitive, String,等直接变量都被认为是基本类型
      */
     public static boolean isPrimitiveType(PsiType psiType) {
         String presentableText = psiType.getPresentableText();
-        return normalTypes.containsKey(presentableText) || isDate(psiType);
+        return psiType instanceof PsiPrimitiveType || normalTypes.containsKey(presentableText);
+    }
+
+    public static boolean isPrimitiveOrDateType(PsiType psiType){
+        return isPrimitiveType(psiType) || isDateType(psiType);
     }
 
     /**
@@ -241,26 +259,34 @@ public class MyPsiTypesUtils {
         return mock;
     }
 
-    public static boolean isList(PsiType psiType, Project project){
-       return JavaPsiFacade.getInstance(project).getElementFactory().createTypeFromText("java.util.List", null).isAssignableFrom(psiType);
+    public static boolean isListType(PsiType psiType, Project project){
+       return getPsiTypeByName("java.util.List", project).isAssignableFrom(psiType);
     }
 
-    public static boolean isSet(PsiType psiType, Project project){
-        return JavaPsiFacade.getInstance(project).getElementFactory().createTypeFromText("java.util.Set", null).isAssignableFrom(psiType);
+    /**
+     * 创建一个psiTYpe。目前发现，已有类通过此方法和 {@link #getPsiTypeByName }方法没啥区别，具体实现也看不懂。留作以后研究。
+     */
+    public static PsiType createPsiTypeByName(String name,Project project){
+        return JavaPsiFacade.getInstance(project).getElementFactory().createTypeFromText(name, null);
     }
 
-    public static boolean isMap(PsiType psiType, Project project){
-        return JavaPsiFacade.getInstance(project).getElementFactory().createTypeFromText("java.util.Map", null).isAssignableFrom(psiType);
+    public static boolean isSetType(PsiType psiType, Project project){
+        return getPsiTypeByName("java.util.Set", project).isAssignableFrom(psiType);
     }
 
-    public static boolean isCollection(PsiType psiType, Project project){
-        return isSet(psiType,project) || isList(psiType,project);
+    public static boolean isMapType(PsiType psiType, Project project){
+        return getPsiTypeByName("java.util.Map", project).isAssignableFrom(psiType);
+    }
+
+    public static boolean isCollectionType(PsiType psiType, Project project){
+        return isSetType(psiType,project) || isListType(psiType,project);
     }
 
     public static boolean isArray(PsiType psiType){
         return psiType instanceof PsiArrayType;
     }
 
+    //获取数组中元素的类型
     public static PsiType getArrayType(PsiType psiType){
         if (!isArray(psiType)){
             return null;
@@ -269,35 +295,119 @@ public class MyPsiTypesUtils {
         return arrayType.getDeepComponentType();
     }
 
-    public static boolean isDate(PsiType psiType){
+    public static boolean isDateType(PsiType psiType){
         return dateList.contains(psiType.getPresentableText());
     }
 
-    public static PsiType getChildTypes(PsiType psiType,Project project){
-        if (isArray(psiType)){
-            return psiType.getDeepComponentType();
-        }else if(isCollection(psiType,project)){
-            return PsiUtil.extractIterableTypeParameter(psiType,false);
+    /**
+     * 获取变量定义时的范型声明table
+     * eg: Map<String,String>
+     *     return
+     *     K : java.lang.String
+     *     V : java.lang.String
+     */
+    public static Map<String,PsiType> getPsiTypeGenericTypes(PsiType psiType){
+        if (isPrimitiveType(psiType)){
+            return new HashMap<>();
         }
-        return null;
+        //1、获取到class 声明的范型列表
+        final PsiClass psiClass = getClassByType(psiType);
+        final List<String> genericNameList = getGenericNameList(psiClass);
+        if (CollectionUtils.isEmpty(genericNameList)){
+            return new HashMap<>();
+        }
+
+        //2、解析变量声明的泛型列表
+        final PsiClassType psiClassType = (PsiClassType)GenericsUtil.getVariableTypeByExpressionType(psiType);
+        final PsiType[] parameters = psiClassType.getParameters();
+        if (genericNameList.size()!=parameters.length){
+            throw new ErrorException("变量声明："+psiType.getCanonicalText()+" 不符合类限定名："+psiClass.getName()+" 导致类型推倒失败！");
+        }
+        final HashMap<String, PsiType> result = new HashMap<>();
+        for (int i = 0, genericNameListSize = genericNameList.size(); i < genericNameListSize; i++) {
+            String s = genericNameList.get(i);
+                result.put(s, parameters[i]);
+        }
+        return result;
+    }
+
+    public static PsiType getCollectionGenericTypes(PsiType psiType,Project project,String paramFullName){
+        final Map<String, PsiType> psiTypeGenericTypes = MyPsiTypesUtils.getPsiTypeGenericTypes(psiType);
+        if (MapUtils.isEmpty(psiTypeGenericTypes)){
+            throw new ErrorException(null,null,psiType.getCanonicalText()+" "+paramFullName+"范型未声明");
+        }
+        //为什么是E呢，因为Collection的范型声明为E。
+        return psiTypeGenericTypes.get("E");
+    }
+
+    /**
+     * 获取类声明的范型table
+     * eg: Class A extends AbstractList<B>
+     *
+     *     return
+     *       E : B
+     * 注：接口暂不支持，理论来说接口也不需要范型解析
+     */
+    public static Map<String,PsiType> getPsiClassGenericTypes(PsiClass psiClass){
+        final PsiClassType[] extendsListTypes = psiClass.getExtendsListTypes();
+        if (ArrayUtils.isEmpty(extendsListTypes)){
+            return new HashMap<>();
+        }
+        Map<String,PsiType> result = new HashMap<>();
+        for (PsiClassType psiClassType : extendsListTypes) {
+            result.putAll(getPsiTypeGenericTypes(psiClassType));
+        }
+        return result;
+    }
+
+    /**
+     * 获取Class定义时声明的范型列表。
+     * eg: java.util.Map<K,V>
+     *   return : [K,V]
+     */
+    public static List<String> getGenericNameList(PsiClass psiClass){
+        final PsiTypeParameter[] typeParameters = psiClass.getTypeParameters();
+        if (ArrayUtils.isEmpty(typeParameters)){
+            return new ArrayList<>();
+        }
+       return Stream.of(typeParameters).map(PsiTypeParameter::getName).collect(Collectors.toList());
+    }
+
+    //通过类名的完整限定名获取psi类型对象
+    public static PsiType getPsiTypeByName(String className,Project project){
+        final PsiClass psiClass = getPsiClassByName(className, project);
+        return getTypeByClass(psiClass);
+    }
+
+    //通过类名的完整限定名获取psi对象
+    public static PsiClass getPsiClassByName(String className,Project project){
+        final PsiManager manager = PsiManager.getInstance(project);
+        return ClassUtil.findPsiClass(manager, className);
+    }
+
+    //type 转 class
+    public static PsiType getTypeByClass(PsiClass psiClass){
+        return PsiTypesUtil.getClassType(psiClass);
+    }
+
+    //class 转 type
+    public static PsiClass getClassByType(PsiType psiType){
+        return PsiTypesUtil.getPsiClass(psiType);
     }
 
     /**
      * 获取类型简写
      */
     public static String getPresentType(PsiType childTypes) {
-        if (isDate(childTypes)){
+        if (isDateType(childTypes)){
             return "date";
         }
         return childTypes.getPresentableText().toLowerCase();
     }
 
-    public static PsiClass getClassByType(PsiType psiType,Project project){
-        return JavaPsiFacade.getInstance(project).findClass(psiType.getCanonicalText(),GlobalSearchScope.allScope(project));
-    }
-
+    //获取默认值
     public static Object getDefaultValue(PsiType psiType) {
-        if (isDate(psiType)){
+        if (isDateType(psiType)){
             return new Date().getTime();
         }
         if (StringUtils.equals(psiType.getPresentableText(), "String")){
@@ -312,4 +422,36 @@ public class MyPsiTypesUtils {
         return 1;
     }
 
+    //判断变量声明是否含有非空注解
+    public static boolean isParameterAnnotatedNotNull(PsiParameter psiParameter){
+        return isJvmModifiersOwnerNotNull(psiParameter);
+    }
+
+    //判断字段是否含有非空注解
+    public static boolean isFiledAnnotatedNotNull(PsiField psiField){
+        return isJvmModifiersOwnerNotNull(psiField);
+    }
+
+    //判断对象是否含有非空注解
+    public static boolean isJvmModifiersOwnerNotNull(PsiJvmModifiersOwner owner){
+        final PsiAnnotation[] annotations = owner.getAnnotations();
+        final List<String> annotationNames = Stream.of(annotations).map(PsiAnnotation::getQualifiedName).collect(Collectors.toList());
+        return CollectionUtils.containsAny(annotationNames,NOT_NULL_ANNOTATIONS);
+    }
+
+    public static boolean hasSupperClass(PsiClass psiClass){
+        final PsiClass superClass = psiClass.getSuperClass();
+        if (Objects.isNull(superClass) || StringUtils.equals("java.lang.Object",superClass.getQualifiedName())){
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean isElementInLiberay(PsiElement element){
+        return Scopes.getType(element.getResolveScope())== Scopes.Type.NAMED;
+    }
+
+    public static boolean isVoid(PsiType psiType) {
+        return psiType.getCanonicalText().equals("java.lang.Void") || psiType.getCanonicalText().equals("void");
+    }
 }

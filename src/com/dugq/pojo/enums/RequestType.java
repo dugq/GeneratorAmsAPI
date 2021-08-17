@@ -25,6 +25,10 @@ public enum  RequestType {
     }
 
     public static RequestType getByDesc(String desc){
+        if (StringUtils.isBlank(desc)){
+            return null;
+        }
+        desc = desc.toLowerCase();
         if(StringUtils.equals("get",desc)){
             return get;
         }

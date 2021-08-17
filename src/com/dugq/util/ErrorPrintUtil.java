@@ -1,6 +1,7 @@
 package com.dugq.util;
 
-import com.dugq.component.ErrorTextToolPanel;
+import com.dugq.component.tool.ErrorTextToolPanel;
+import com.dugq.exception.ErrorException;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.content.Content;
 
@@ -15,13 +16,22 @@ public class ErrorPrintUtil extends BasePrintUtil{
     }
 
 
-    public static void printLine(String message, Project project) {
+    public static void printErrorLine(String message, Project project) {
         ErrorTextToolPanel errorTextToolPanel = getErrorTextToolPanel(project);
-        errorTextToolPanel.appendLine(message);
+        errorTextToolPanel.appendErrorLine(message);
 
         getKjjToolWindow(project).show(() ->
                         getContentManager(project).setSelectedContent(
                                         getContentManager(project).findContent("ERROR Print")));
+    }
+
+    public static void printWarnLine(String message, Project project) {
+        ErrorTextToolPanel errorTextToolPanel = getErrorTextToolPanel(project);
+        errorTextToolPanel.appendWarnLine(message);
+
+        getKjjToolWindow(project).show(() ->
+                getContentManager(project).setSelectedContent(
+                        getContentManager(project).findContent("ERROR Print")));
     }
 
     public static void clear(Project project){
@@ -29,10 +39,14 @@ public class ErrorPrintUtil extends BasePrintUtil{
     }
 
     public static void printException(Exception e, Project project) {
-        printLine(e.getMessage(),project);
+        printErrorLine(e.getMessage(),project);
         StackTraceElement[] stackTrace = e.getStackTrace();
         for (StackTraceElement stackTraceElement : stackTrace) {
-            printLine("\tat   "+stackTraceElement.getClassName()+"#"+stackTraceElement.getMethodName()+"("+stackTraceElement.getFileName()+":"+stackTraceElement.getLineNumber()+")",project);
+            printErrorLine("\tat   "+stackTraceElement.getClassName()+"#"+stackTraceElement.getMethodName()+"("+stackTraceElement.getFileName()+":"+stackTraceElement.getLineNumber()+")",project);
         }
+    }
+
+    public static void printError(ErrorException e, Project project) {
+        printErrorLine(e.getFullMessage(),project);
     }
 }

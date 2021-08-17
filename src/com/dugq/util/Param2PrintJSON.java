@@ -2,9 +2,8 @@ package com.dugq.util;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dugq.pojo.RequestParam;
-import com.dugq.requestmapping.param.bean.ParamBean;
-import com.intellij.openapi.project.Project;
+import com.dugq.pojo.ParamBean;
+import com.dugq.pojo.enums.ParamTypeEnum;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -19,11 +18,11 @@ import java.util.stream.Collectors;
  */
 public class Param2PrintJSON {
 
-    public static JSONObject param2Json(List<RequestParam> params){
+    public static JSONObject param2Json(List<ParamBean> params){
         if(CollectionUtils.isEmpty(params)){
             return new JSONObject();
         }
-        Map<String, List<RequestParam>> map = params.stream().collect(Collectors.groupingBy(param -> {
+        Map<String, List<ParamBean>> map = params.stream().collect(Collectors.groupingBy(param -> {
             String paramKey = param.getParamKey();
             if (!paramKey.contains(">>")) {
                 return "111";
@@ -32,15 +31,15 @@ public class Param2PrintJSON {
                 return split[split.length - 2];
             }
         }));
-        List<RequestParam> requestParams = map.get("111");
-        return getJsonObject(map, requestParams);
+        List<ParamBean> paramBeans = map.get("111");
+        return getJsonObject(map, paramBeans);
     }
 
     @NotNull
-    private static JSONObject getJsonObject(Map<String, List<RequestParam>> map, List<RequestParam> requestParams) {
+    private static JSONObject getJsonObject(Map<String, List<ParamBean>> map, List<ParamBean> paramBeans) {
         JSONObject result = new JSONObject();
-        for (RequestParam requestParam : requestParams) {
-            String paramKey = requestParam.getParamKey();
+        for (ParamBean paramBean : paramBeans) {
+            String paramKey = paramBean.getParamKey();
             String shortName ;
             if(paramKey.contains(">>")){
                 String[] split = paramKey.split(">>");
@@ -48,11 +47,11 @@ public class Param2PrintJSON {
             }else{
                 shortName = paramKey;
             }
-            List<RequestParam> children = map.get(shortName);
+            List<ParamBean> children = map.get(shortName);
             if(CollectionUtils.isEmpty(children)){
-                result.put(shortName, getJSONValue(requestParam));
+                result.put(shortName, getJSONValue(paramBean));
             }else{
-                if(requestParam.getParamType()==12){
+                if(Objects.equals(paramBean.getParamType(), ParamTypeEnum.ARRAY)){
                     JSONArray array = new JSONArray();
                     array.add(getJsonObject(map,children));
                     result.put(shortName,array);
@@ -65,38 +64,14 @@ public class Param2PrintJSON {
     }
 
     @NotNull
-    private static String getJSONValue(RequestParam requestParam) {
+    private static String getJSONValue(ParamBean paramBean) {
         String value = "";
-        Integer paramType = requestParam.getParamType();
-        if (Objects.nonNull(paramType)){
-            value += ApiParamBuildUtil.getType(paramType);
-        }
-        if (StringUtils.isNotBlank(requestParam.getParamName())){
-            value = value+"$&"+requestParam.getParamName();
+        value += paramBean.getParamType().getName();
+        if (StringUtils.isNotBlank(paramBean.getParamName())){
+            value = value+"$&"+ paramBean.getParamName();
         }
         return value;
     }
 
-    public static JSONObject param2Json4RPC(List<ParamBean> paramBeanList, Project project) {
-        if (CollectionUtils.isEmpty(paramBeanList)){
-            return new JSONObject();
-        }
-        JSONObject jsonObject = new JSONObject();
-        for (ParamBean paramBean : paramBeanList) {
-            if (paramBean.isPrimitive()){
-                jsonObject.put("_p"+paramBean.getIndex(),MyPsiTypesUtils.getDefaultValue(paramBean.getParamPsiType()));
-            }else if (MyPsiTypesUtils.isCollection(paramBean.getParamPsiType(),project) || MyPsiTypesUtils.isArray(paramBean.getParamPsiType())){
-                JSONArray subJson = new JSONArray();
-                if (paramBean.isChildPrimitive()){
-                    subJson.add(MyPsiTypesUtils.getDefaultValue(paramBean.getChildType()));
-                }else{
-                    subJson.add(paramBean.getJsonBody());
-                }
-                jsonObject.put("_p"+paramBean.getIndex(),subJson);
-            }else{
-                jsonObject.put("_p"+paramBean.getIndex(),paramBean.getJsonBody());
-            }
-        }
-        return jsonObject;
-    }
+
 }

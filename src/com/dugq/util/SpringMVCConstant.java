@@ -34,4 +34,9 @@ public interface SpringMVCConstant {
 
     String AdvancedFeignShort = "AdvancedFeignClient";
 
+    public static String getShortName(String classFullName){
+        final String[] split = classFullName.split("\\.");
+        return split[split.length-1];
+    }
+
 }

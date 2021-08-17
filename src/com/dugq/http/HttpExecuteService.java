@@ -1,7 +1,5 @@
 package com.dugq.http;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.dugq.bean.ResponseBean;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
@@ -23,7 +21,6 @@ import org.apache.http.protocol.HttpContext;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Created by dugq on 2021/4/8.
@@ -57,26 +54,23 @@ public class HttpExecuteService {
     }
 
     public static ResponseBean doSendRequest(HttpRequestBase httpRequestBase) throws IOException {
-            CloseableHttpResponse response = httpClient.execute(httpRequestBase);
-        StatusLine statusLine = response.getStatusLine();
-        if (statusLine.getStatusCode()>=200 && statusLine.getStatusCode()<300){
-            return new ResponseBean(statusLine.getStatusCode(), IOUtils.toString(response.getEntity().getContent(),"UTF-8"));
 
-        }else{
-            return new ResponseBean(response.getStatusLine().getStatusCode());
+        try (
+                CloseableHttpResponse response = httpClient.execute(httpRequestBase);
+            ){
+            StatusLine statusLine = response.getStatusLine();
+            if (statusLine.getStatusCode()>=200 && statusLine.getStatusCode()<300){
+                return new ResponseBean(statusLine.getStatusCode(), IOUtils.toString(response.getEntity().getContent(),"UTF-8"),response.getAllHeaders());
+
+            }else{
+                return new ResponseBean(response.getStatusLine().getStatusCode(),response.getAllHeaders());
+            }
         }
     }
 
-    public static ResponseBean doGetWithJSONString(String url, Map<String,String> headers, String jsonString) throws IOException{
-        if (StringUtils.isBlank(jsonString)){
-            return doGet(url,headers,null);
-        }
-        return doGet(url,headers, JSON.parseObject(jsonString));
-    }
-
-    public static ResponseBean doGet(String url, Map<String,String> headers, JSONObject params) throws IOException {
-        if (Objects.nonNull(params)){
-            url = appendParams(url,params);
+    public static ResponseBean sendGet(String url, Map<String,String> headers, Map<String,String> paramMap) throws IOException {
+        if (MapUtils.isNotEmpty(paramMap)){
+            url = appendParams(url,paramMap);
         }
         HttpGet httpGet = new HttpGet(url);
         if (MapUtils.isNotEmpty(headers)){
@@ -85,25 +79,18 @@ public class HttpExecuteService {
         return doSendRequest(httpGet);
     }
 
-    public static ResponseBean doPostWithJSONString(String url, Map<String,String> headers, String jsonString) throws IOException{
-        if (StringUtils.isBlank(jsonString)){
-            return doPost(url,headers,null);
-        }
-        return doPost(url,headers, JSON.parseObject(jsonString));
-    }
-
-    public static ResponseBean doPost(String url, Map<String,String> headers, JSONObject requestBody) throws IOException {
+    public static ResponseBean doPost(String url, Map<String,String> headers, String requestBody) throws IOException {
         HttpPost httpPost = new HttpPost(url);
         if (MapUtils.isNotEmpty(headers)){
             headers.forEach(httpPost::addHeader);
         }
-        if (Objects.nonNull(requestBody)){
-            httpPost.setEntity(new StringEntity(requestBody.toJSONString(), ContentType.APPLICATION_JSON));
+        if (StringUtils.isNotBlank(requestBody)){
+            httpPost.setEntity(new StringEntity(requestBody, ContentType.APPLICATION_JSON));
         }
         return doSendRequest(httpPost);
     }
 
-    public static String appendParams(String url, JSONObject params){
+    public static String appendParams(String url, Map<String,String> params){
         StringBuilder sb = new StringBuilder(url);
         if(sb.indexOf("?") != -1){
             sb.append("&");
@@ -115,20 +102,13 @@ public class HttpExecuteService {
         return sb.toString();
     }
 
-    public static String buildUrlParams(JSONObject params) {
+    public static String buildUrlParams(Map<String,String> params) {
         if (MapUtils.isEmpty(params)) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
         params.forEach((key,value)-> {
-            Object param = value;
-            String str;
-            if ((value instanceof String) || value.getClass().isPrimitive()){
-                str = value.toString();
-            }else{
-                str = JSON.toJSONString(param);
-            }
-            String encode = URLEncoder.encode(str);
+            String encode = URLEncoder.encode(value);
             sb.append(key).append("=").append(encode).append("&");
         });
         sb.deleteCharAt(sb.length()-1);
