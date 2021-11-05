@@ -1,20 +1,25 @@
 package com.dugq.requestmapping.param;
 
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dugq.enums.PsiTypeEnum;
-import com.dugq.exception.StopException;
-import com.dugq.requestmapping.param.bean.ParamBean;
-import com.dugq.util.ErrorPrintUtil;
+import com.dugq.bean.GenericTool;
+import com.dugq.exception.ErrorException;
+import com.dugq.pojo.ParamBean;
+import com.dugq.pojo.enums.ParamTypeEnum;
 import com.dugq.util.MyPsiTypesUtils;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiParameterList;
 import com.intellij.psi.PsiType;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,88 +38,73 @@ public class RPCParamBuildUtil {
     public static List<ParamBean> getList(PsiMethod psiMethod, Project project){
         PsiParameterList parameterList = psiMethod.getParameterList();
         PsiParameter[] parameters = parameterList.getParameters();
+        if (ArrayUtils.isEmpty(parameters)){
+            return Collections.emptyList();
+        }
         AtomicInteger index = new AtomicInteger();
-        return Stream.of(parameters).map(parameter->{
-            ParamBean paramBean = new ParamBean();
-            PsiType parameterType = parameter.getType();
-            if(MyPsiTypesUtils.isSkipType(parameterType)){
-                return null;
-            }
-            if(MyPsiTypesUtils.isSkipFiled(parameter.getName())){
-                return null;
-            }
-            else if(MyPsiTypesUtils.isPrimitiveType(parameterType)){
-                paramBean.setPrimitive(true);
-                paramBean.setShortType(MyPsiTypesUtils.getPresentType(parameterType));
-            }else if (MyPsiTypesUtils.isMap(parameterType,project)){
-                ErrorPrintUtil.printLine("请不要以Map作为参数！如果你非要用，那就不要使用此插件。",project);
-                throw new StopException();
-            }else if (MyPsiTypesUtils.isCollection(parameterType,project) || MyPsiTypesUtils.isArray(parameterType)){
-                paramBean.setShortType(PsiTypeEnum.ARRAY.getType());
-                PsiType childTypes = MyPsiTypesUtils.getChildTypes(parameterType,project);
-                if (Objects.isNull(childTypes)){
-                    ErrorPrintUtil.printLine("参数:【"+parameter.getName()+"】 没有指定泛型",project);
-                    throw new StopException();
-                }
-                if (MyPsiTypesUtils.isPrimitiveType(childTypes)){
-                     paramBean.setChildPrimitive(true);
-                     paramBean.setChildShortType(MyPsiTypesUtils.getPresentType(childTypes));
-                }else if(MyPsiTypesUtils.isArray(childTypes) || MyPsiTypesUtils.isCollection(childTypes,project) || MyPsiTypesUtils.isMap(childTypes,project)){
-                    ErrorPrintUtil.printLine("参数【"+parameter.getName()+"】字段，此插件暂不支持多维数组格式！",project);
-                    throw new StopException();
-                }else{
-                    paramBean.setChildPrimitive(false);
-                    paramBean.setChildShortType(PsiTypeEnum.JSON.getType());
-                    JSONObject jsonBody = buildJson(childTypes, project, parameter.getName());
-                    paramBean.setJsonBody(jsonBody);
-                }
-                paramBean.setChildType(childTypes);
-            }else{
-                paramBean.setShortType(PsiTypeEnum.JSON.getType());
-                JSONObject jsonBody = buildJson(parameterType, project, parameter.getName());
-                paramBean.setJsonBody(jsonBody);
-            }
-            paramBean.setName(parameter.getName());
-            paramBean.setIndex(index.getAndIncrement());
-            paramBean.setParamPsiType(parameterType);
-            return paramBean;
-        }).filter(Objects::nonNull).collect(Collectors.toList());
+        return Stream.of(parameters).map(parameter-> builderParamBeanByParameter(project, index, parameter)).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
-    private static JSONObject buildJson(PsiType psiType, Project project,String parentNames) {
-        JSONObject result = new JSONObject();
-        PsiClass classByType = MyPsiTypesUtils.getClassByType(psiType, project);
-        PsiField[] allFields = classByType.getAllFields();
-        for (PsiField psiField : allFields) {
-            PsiType fieldType = psiField.getType();
-            if (MyPsiTypesUtils.isSkipType(fieldType) || MyPsiTypesUtils.isSkipFiled(psiField.getName())){
+    @Nullable
+    private static ParamBean builderParamBeanByParameter(Project project, AtomicInteger index, PsiParameter parameter) {
+        PsiType parameterType = parameter.getType();
+        if(MyPsiTypesUtils.isSkipType(parameterType)){
+            return null;
+        }
+        ParamBean paramBean = new ParamBean();
+        paramBean.setParamKey(parameter.getName());
+        paramBean.setParamName(parameter.getName());
+        paramBean.set$index(index.getAndIncrement());
+        if(MyPsiTypesUtils.isPrimitiveType(parameterType)){
+            paramBean.setParamType(ParamTypeEnum.getTypeByPsiType(parameterType,null,project));
+        }else if (MyPsiTypesUtils.isMapType(parameterType, project)){
+            paramBean.setParamType(ParamTypeEnum.JSON);
+        }else if (MyPsiTypesUtils.isCollectionType(parameterType, project) || MyPsiTypesUtils.isArray(parameterType)){
+            paramBean.setParamType(ParamTypeEnum.ARRAY);
+        }else{
+            paramBean.setParamType(ParamTypeEnum.JSON);
+            JSONObject jsonBody = buildJson(parameterType, project, GenericTool.create(parameterType));
+            paramBean.setParamValue(jsonBody.toJSONString());
+        }
+        return paramBean;
+    }
+
+    public static JSONObject buildJson(PsiType psiType, Project project, GenericTool genericTypeStack) {
+        JSONObject jsonObject = new JSONObject();
+        final PsiClass psiClass = MyPsiTypesUtils.getClassByType(psiType);
+        if (Objects.isNull(psiClass)){
+            throw new ErrorException("未查找到的类型： class name ="+psiType.getCanonicalText());
+        }
+        PsiField[] fields = psiClass.getFields();
+        for (PsiField field : fields) {
+            if(MyPsiTypesUtils.skipFiled.contains(field.getName())){
                 continue;
-            }else if((MyPsiTypesUtils.isPrimitiveType(fieldType))){
-                result.put(psiField.getName(),MyPsiTypesUtils.getDefaultValue(fieldType));
-            }else if(MyPsiTypesUtils.isArray(psiType) || MyPsiTypesUtils.isCollection(fieldType,project)){
-                JSONArray array = new JSONArray();
-                PsiType childTypes = MyPsiTypesUtils.getChildTypes(fieldType,project);
-                if (Objects.isNull(childTypes)){
-                    ErrorPrintUtil.printLine("参数:【"+parentNames+"."+psiField.getName()+"】 没有指定泛型",project);
-                    throw new StopException();
-                }
-                if (MyPsiTypesUtils.isPrimitiveType(childTypes)){
-                    array.add(MyPsiTypesUtils.getDefaultValue(fieldType));
-                }else if(MyPsiTypesUtils.isArray(childTypes) || MyPsiTypesUtils.isCollection(childTypes,project) || MyPsiTypesUtils.isMap(childTypes,project)){
-                    ErrorPrintUtil.printLine("参数【"+parentNames+"."+psiField.getName()+"】字段，此插件暂不支持多维数组格式！",project);
-                    throw new StopException();
-                }else{
-                    array.add(buildJson(fieldType,project,parentNames+"."+psiField.getName()));
-                }
-                result.put(psiField.getName(), array);
-            }else if(MyPsiTypesUtils.isMap(fieldType,project)){
-                ErrorPrintUtil.printLine("【"+parentNames+"."+psiField.getName()+"】字段是Map，不支持！",project);
-                throw new StopException();
-            }else{//其他都是Object
-                result.put(psiField.getName(),buildJson(fieldType,project,parentNames+"."+psiField.getName()));
+            }
+            if(MyPsiTypesUtils.isPrimitiveType(field.getType()) || MyPsiTypesUtils.isDateType(field.getType())){
+                jsonObject.put(field.getName(),"");
+            }else if (MyPsiTypesUtils.isMapType(field.getType(), project)){
+                jsonObject.put(field.getName(),"{}");
+            }else if (MyPsiTypesUtils.isCollectionType(field.getType(), project) || MyPsiTypesUtils.isArray(field.getType())){
+                jsonObject.put(field.getName(),"[]");
+            }else{
+                jsonObject.put(field.getName(),buildJson(field.getType(),project,genericTypeStack));
             }
         }
-        return result;
+        final JSONObject parentObject = getParamBeansFromSupperClass(project, psiClass,genericTypeStack);
+        if (MapUtils.isNotEmpty(parentObject)){
+            jsonObject.putAll(parentObject);
+        }
+        return jsonObject;
+    }
+
+    @Nullable
+    private static JSONObject getParamBeansFromSupperClass(Project project, PsiClass psiClass, GenericTool genericTypeStack) {
+        final PsiClassType[] extendsListType = psiClass.getExtendsListTypes();
+        if (ArrayUtils.isEmpty(extendsListType) || StringUtils.equals(MyPsiTypesUtils.getClassByType(psiClass.getExtendsListTypes()[0]).getQualifiedName(),"java.lang.Object")){
+            return null;
+        }
+        final PsiClassType superPsiType = extendsListType[0];
+        return buildJson(superPsiType, project,genericTypeStack.explainSupperClass(superPsiType,project));
     }
 
 }

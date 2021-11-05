@@ -1,10 +1,12 @@
 package com.dugq.action;
 
-import com.dugq.pojo.EditorParam;
+import com.dugq.exception.ErrorException;
+import com.dugq.exception.StopException;
+import com.dugq.pojo.ApiBean;
 import com.dugq.pojo.TargetBean;
+import com.dugq.pojo.ThreadStack;
 import com.dugq.util.APIPrintUtil;
 import com.dugq.util.ApiUtils;
-import com.dugq.util.ErrorPrintUtil;
 import com.dugq.util.TargetUtils;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -23,19 +25,27 @@ public class PrintApiAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent event) {
         Project project = event.getProject();
+        APIPrintUtil.clear(project);
         Editor editor = event.getData(PlatformDataKeys.EDITOR);
         TargetBean targetBean = TargetUtils.getTargetBean(editor, project);
         if (Objects.isNull(targetBean.getContainingMethod())){
-            ErrorPrintUtil.printLine("请选择request handler mapping！",project);
+            APIPrintUtil.printErrorLine("请选择request handler mapping！",project);
             return;
         }
-        EditorParam apiParam;
         try {
-            apiParam = ApiUtils.getApiParam(project, targetBean.getContainingMethod(),targetBean.getContainingClass());
+            ThreadStack.init(targetBean.getContainingMethod());
+            final ApiBean apiParamBean = ApiUtils.getApiParam(project, targetBean.getContainingMethod(), targetBean.getContainingClass());
+            APIPrintUtil.print(apiParamBean,project);
+        }catch (StopException e){
+            e.printStackTrace();
+        } catch (ErrorException e){
+            APIPrintUtil.printErrorLine(e.getFullMessage(),project);
+            e.printStackTrace();
         }catch (Exception e){
-            ErrorPrintUtil.printLine(e.getMessage(),project);
-            return;
+            APIPrintUtil.printException(e,project);
+            e.printStackTrace();
+        }finally {
+            ThreadStack.rest();
         }
-        APIPrintUtil.print(apiParam,project);
     }
 }

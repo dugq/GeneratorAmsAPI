@@ -1,41 +1,55 @@
 <idea-plugin>
 <id>com.dugq.dugq</id>
 <name>generatoramsapi</name>
-<version>3.5.3</version>
+<version>5.0.0</version>
 <vendor email="dgqngu@163.com" url="http://www.dui88.com">兑吧</vendor>
 
 <description>
-  1、修复打印时会弹出更新弹层的bug
-  2、优化AMS窗口，并更新为KJJ（客集集）
-  3、增加接口自动生成测试脚本功能
-  4、修复本地debug时卡死的问题
-  5、增加RPC接口测试
+  <![CDATA[
+  <h2>1、上传接口到AMS上</h2>
+  <h2>2、打印接口信息，用于技术方案的编写</h2>
+  <h2>3、测试接口，自动生成请求URL和参数</h2>
+  <h2>4、测试RPC接口</h2>
+  ]]>
 </description>
 
   <change-notes>
-    修复bug：KjjHttpRequest 和 KjjHttpResponse 不能正常使用的问题
+    <![CDATA[
+    1、新增上传到YAPI接口管理平台功能
+      ]]>
   </change-notes>
 
 <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
      on how to target different products -->
 
-<idea-version since-build="193.0"/>
-
-  <projectListeners>
-    <listener class="com.dugq.listener.InitListener"
-              topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener" />
-  </projectListeners>
+<idea-version since-build="201.0"/>
 
 <extensions defaultExtensionNs="com.intellij">
 
 
   <projectService serviceImplementation="com.dugq.service.TestApiService"/>
+  <projectService serviceImplementation="com.dugq.service.config.impl.ApiConfigService"/>
+  <projectService serviceImplementation="com.dugq.service.config.impl.GlobalHeadersConfigService"/>
+  <projectService serviceImplementation="com.dugq.service.config.impl.GlobalHostConfigService"/>
+  <projectService serviceImplementation="com.dugq.service.config.impl.GlobalParamConfigService"/>
+
+  <projectService serviceImplementation="com.dugq.service.config.impl.YapiConfigService"/>
+  <projectService serviceImplementation="com.dugq.service.yapi.YapiUserService"/>
+  <projectService serviceImplementation="com.dugq.service.yapi.YapiGroupService"/>
+  <projectService serviceImplementation="com.dugq.service.yapi.YapiProjectService"/>
+  <projectService serviceImplementation="com.dugq.service.yapi.YapiMenuService"/>
+  <projectService serviceImplementation="com.dugq.service.yapi.YaiSearchService"/>
+  <projectService serviceImplementation="com.dugq.service.yapi.YapiInterfaceService"/>
+
+  <projectService serviceImplementation="com.dugq.service.project.ProjectApiService"/>
+
+  <projectService serviceImplementation="com.dugq.service.FeignApiService"/>
 
 
   <!--canCloseContents 允许用户关闭-->
   <toolWindow canCloseContents="false" anchor="bottom" order="last"
               id="KJJ"
-              factoryClass="com.dugq.component.WindowFactoryComponent">
+              factoryClass="com.dugq.component.tool.WindowFactoryComponent">
   </toolWindow>
 
 </extensions>
@@ -52,8 +66,15 @@
   <action id="printAPI" class="com.dugq.action.PrintApiAction" text="打印ams接口">
     <add-to-group group-id="GenerateGroup" anchor="first"/>
   </action>
-  <action id="uploadAPI" class="com.dugq.action.UploadApiAction" text="上传ams接口">
+  <action id="uploadAPI" class="com.dugq.action.AmsUploadApiAction" text="上传ams接口">
     <add-to-group group-id="GenerateGroup" anchor="first"/>
+  </action>
+  <action id="uploadAPI2Yapi" class="com.dugq.action.YapiUploadApiAction" text="上传YAPI接口">
+    <add-to-group group-id="GenerateGroup" anchor="first"/>
+  </action>
+
+  <action id="movingApi" class="com.dugq.action.Ams2YapiAction" text="迁移API">
+    <add-to-group group-id="GenerateGroup" anchor="last"/>
   </action>
 
 

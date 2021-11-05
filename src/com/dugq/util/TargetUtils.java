@@ -1,5 +1,6 @@
 package com.dugq.util;
 
+import com.dugq.component.common.NotifyComponent;
 import com.dugq.pojo.TargetBean;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
@@ -20,18 +21,18 @@ public class TargetUtils {
         //获得光标所处的文件，和方法
         PsiFile psiFile = PsiUtilBase.getPsiFileInEditor(editor, project);
         if(Objects.isNull(psiFile)){
-            ApiParamBuildUtil.error("请选择文件！",project);
+            NotifyComponent.error("请选择文件！",project);
             throw new RuntimeException();
         }
         PsiClass containingClass = PsiTreeUtil.getParentOfType(psiFile.findElementAt(editor.getCaretModel().getOffset()), PsiClass.class);
         if(Objects.isNull(containingClass)){
-            ApiParamBuildUtil.error("请选择controller！",project);
+            NotifyComponent.error("请选择controller！",project);
             throw new RuntimeException();
         }
         //获取当前方法
         PsiMethod containingMethod = PsiTreeUtil.getParentOfType(psiFile.findElementAt(editor.getCaretModel().getOffset()), PsiMethod.class);
         if ((Objects.isNull(containingMethod))){
-            ApiParamBuildUtil.error("请选择method！",project);
+            NotifyComponent.error("请选择method！",project);
             throw new RuntimeException();
         }
         return new TargetBean(containingClass,containingMethod);

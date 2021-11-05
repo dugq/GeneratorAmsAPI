@@ -8,7 +8,7 @@ import com.intellij.ui.content.ContentManager;
 /**
  * Created by dugq on 2021/4/8.
  */
-public class BasePrintUtil {
+public abstract class BasePrintUtil {
 
     protected static ToolWindow getKjjToolWindow(Project project) {
         return ToolWindowManager.getInstance(project).getToolWindow("KJJ");
@@ -17,6 +17,5 @@ public class BasePrintUtil {
     protected static ContentManager getContentManager(Project project) {
         return getKjjToolWindow(project).getContentManager();
     }
-
 
 }

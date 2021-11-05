@@ -1,7 +1,7 @@
 package com.dugq.util;
 
 import com.dugq.exception.ErrorException;
-import com.dugq.pojo.UserInfo;
+import com.dugq.pojo.ams.UserInfo;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentHelper;

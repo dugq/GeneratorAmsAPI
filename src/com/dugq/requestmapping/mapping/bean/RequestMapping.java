@@ -1,6 +1,6 @@
 package com.dugq.requestmapping.mapping.bean;
 
-import com.dugq.requestmapping.param.bean.ParamBean;
+import com.dugq.requestmapping.param.bean.RpcParamBean;
 
 import java.util.List;
 
@@ -13,7 +13,7 @@ public class RequestMapping {
 
     private String uri;
 
-    private List<ParamBean> paramBeanList;
+    private List<RpcParamBean> paramBeanList;
 
 
     public Integer getReqType() {
@@ -32,11 +32,11 @@ public class RequestMapping {
         this.uri = uri;
     }
 
-    public List<ParamBean> getParamBeanList() {
+    public List<RpcParamBean> getParamBeanList() {
         return paramBeanList;
     }
 
-    public void setParamBeanList(List<ParamBean> paramBeanList) {
+    public void setParamBeanList(List<RpcParamBean> paramBeanList) {
         this.paramBeanList = paramBeanList;
     }
 }

@@ -1,21 +1,28 @@
 package com.dugq.util;
 
-import com.dugq.component.SelectInputComponent;
+import com.dugq.bean.GenericTool;
 import com.dugq.exception.ErrorException;
-import com.dugq.exception.StopException;
-import com.dugq.pojo.EditorParam;
-import com.dugq.pojo.GroupVo;
-import com.dugq.pojo.RequestParam;
-import com.dugq.pojo.enums.RequestType;
+import com.dugq.pojo.ApiBean;
+import com.dugq.pojo.ParamBean;
+import com.dugq.pojo.ThreadStack;
+import com.dugq.pojo.enums.ParamTypeEnum;
+import com.dugq.util.psidocment.MyMethodUtils;
+import com.dugq.util.psidocment.ReturnUtils;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiClassType;
+import com.intellij.psi.PsiField;
+import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiParameter;
+import com.intellij.psi.PsiType;
+import com.intellij.psi.impl.light.LightParameter;
 import com.intellij.psi.javadoc.PsiDocComment;
-import com.intellij.psi.search.GlobalSearchScope;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,232 +31,188 @@ import java.util.Objects;
  */
 public class ApiUtils {
 
-    public static EditorParam getApiParam( Project project, PsiMethod containingMethod, PsiClass containingClass) {
-        EditorParam param = new EditorParam();
-        String mapping = getRequestUrl(containingClass, SpringMVCConstant.RequestMapping,project);
-        if(Objects.isNull(mapping)){
-            throw new ErrorException(containingMethod,null,"class的@requestMapping注解呢？？？");
-        }
-        String subMapping = getRequestUrl(containingMethod, SpringMVCConstant.GetMapping, project);
-        String requestMethod;
-        if(Objects.nonNull(subMapping)){
-            requestMethod = "get";
-        }else{
-            subMapping = getRequestUrl(containingMethod, SpringMVCConstant.PostMapping, project);
-            if(Objects.isNull(subMapping)){
-                throw new ErrorException(containingMethod,null,"方法的 getMapping or postMapping 注解呢？？？");
-            }
-            requestMethod = "post";
-        }
-        String uri = mapping+(subMapping.startsWith("/")?"":"/")+subMapping;
-        param.setApiRequestType(RequestType.getByDesc(requestMethod).getType());
-        param.setApiURI(uri);
-        //读取方法注释
-        PsiDocComment docComment = containingMethod.getDocComment();
-        String methodDesc = DesUtil.getFiledDesc(docComment);
-        //截取第一段作为接口注释
-        if(methodDesc.contains("@")){
-            methodDesc = methodDesc.substring(0,methodDesc.indexOf("@"));
-        }
-        if(StringUtils.isBlank(methodDesc)){
-            throw new ErrorException(containingMethod,null,"接口名称请用在方法注释中声明");
-        }
-        param.setApiName(DesUtil.trimFirstAndLastChar(methodDesc,','));
-        List<RequestParam> queryList = getQueryList(project, containingMethod);
-        param.setApiRequestParam(queryList);
-        List<RequestParam> returnList = getReturnList(project, containingMethod);
+    public static ApiBean getApiParam(Project project, PsiMethod containingMethod, PsiClass containingClass) {
+        ApiBean param = new ApiBean();
+        param.setApiName(MyMethodUtils.getMethodSimpleDesc(containingMethod));
+        //todo 整理方法，实现兼容多个URL和@RequestMapping
+        param.setApiURI(MyMethodUtils.getRequestMappings(containingMethod,containingClass));
+        param.setApiRequestType(MyMethodUtils.getRequestType(containingMethod));
+        param.setApiParamBean(getQueryList(project, containingMethod));
+        final List<ParamBean> returnList = getReturnList(project, containingMethod);
+        fillReturnData(containingMethod, returnList);
         param.setApiResultParam(returnList);
-        param.setApiSuccessMock(Param2JSON.param2Json(returnList).toJSONString());
-        param.setType(2);
         return param;
     }
 
 
-    public static GroupVo getGroupVo(List<GroupVo> groupVos, String uri) {
-        SelectInputComponent comboBox = new SelectInputComponent(groupVos,uri);
-        if(!comboBox.showAndGet()){
-            throw new StopException();
-        }
-        GroupVo groupVo = groupVos.get(comboBox.getBox().getSelectedIndex());
-        if(CollectionUtils.isNotEmpty(groupVo.getChildGroupList())){
-            return getGroupVo(groupVo.getChildGroupList(), uri);
-        }
-        return groupVo;
-    }
-
-    private static List<RequestParam> getReturnList(Project project, PsiMethod containingMethod) {
-        List<RequestParam> returnList = new ArrayList<>();
+    public static List<ParamBean> getReturnList(Project project, PsiMethod containingMethod) {
         PsiType returnType = containingMethod.getReturnType();
-        if(Objects.nonNull(returnType)){
-            if(returnType instanceof PsiPrimitiveType){
-                RequestParam returnValue = new RequestParam();
-                returnValue.setParamKey(((PsiPrimitiveType) returnType).getName());
-                returnValue.setParamName(DesUtil.getReturn(containingMethod));
-                returnValue.setParamType(ApiParamBuildUtil.getType(returnType.getPresentableText()));
-                returnList.add(returnValue);
-            }
-            else if(MyPsiTypesUtils.isNormalType(returnType.getPresentableText())){
-                RequestParam returnValue = new RequestParam();
-                returnValue.setParamKey(returnType.getPresentableText());
-                returnValue.setParamName(DesUtil.getReturn(containingMethod));
-                returnValue.setParamType(ApiParamBuildUtil.getType(returnType.getPresentableText()));
-                returnList.add(returnValue);
-            }else if(returnType.getPresentableText().startsWith("List")
-                    || returnType.getPresentableText().startsWith("Map")
-                    || returnType.getPresentableText().startsWith("Set")
-                    || returnType instanceof PsiArrayType) {
-                throw new ErrorException(null,null,"返回值不支持直接返回集合");
-            }else{
-                String canonicalText = returnType.getCanonicalText();
-                PsiClass returnClass;
-                List<String> childClass = new ArrayList<>();
-                if(canonicalText.contains("<")){
-                    String[] classNames = canonicalText.split("<");
-                    String fieldType = classNames[0];
-                    for (int i = 1 ; i<classNames.length;i++ ) {
-                        childClass.add(classNames[i]);
-                    }
-                    returnClass = JavaPsiFacade.getInstance(project).findClass(fieldType, GlobalSearchScope.allScope(project));
-                }else{
-                    returnClass = JavaPsiFacade.getInstance(project).findClass(canonicalText, GlobalSearchScope.allScope(project));
+        if (Objects.isNull(returnType)){
+            return new ArrayList<>();
+        }
+        if (MyPsiTypesUtils.isVoid(returnType)){
+            return new ArrayList<>();
+        }
+        PsiParameter returnParam = new LightParameter("返回值",returnType,containingMethod.getNavigationElement());
+        ThreadStack.pushVar(returnParam);
+        if(MyPsiTypesUtils.isPrimitiveType(returnType) || MyPsiTypesUtils.isDateType(returnType)){
+            throw new ErrorException("接口的返回值不应该是基本类型");
+        }else if(MyPsiTypesUtils.isCollectionType(returnType,project)
+                || MyPsiTypesUtils.isMapType(returnType,project)
+                || MyPsiTypesUtils.isArray(returnType)) {
+            throw new ErrorException("接口的返回值不应该是集合或者数组类型");
+        }else{
+            final List<ParamBean> paramListFromPsiType = getParamListFromPsiType(returnType, project, GenericTool.create(returnType));
+            ThreadStack.popVar(returnParam);
+            return paramListFromPsiType;
+        }
+    }
+
+    private static void fillReturnData(PsiMethod containingMethod, List<ParamBean> paramListFromPsiType) {
+        for (ParamBean paramBean : paramListFromPsiType) {
+            if (StringUtils.equals(paramBean.getParamKey(),"data")){
+                final String returnDesc = ReturnUtils.getMethodReturnSimpleDesc(containingMethod.getDocComment());
+                if (StringUtils.isBlank(returnDesc)){
+                    throw new ErrorException("请使用@return 对返回值的data做一个简单的描述来作为字段解释");
                 }
-                for (PsiField field : returnClass.getFields()) {
-                    List<RequestParam> paramListFromFiled = ApiParamBuildUtil.getParamListFromFiled(field, project, null, field.getName(), childClass);
-                    returnList.addAll(paramListFromFiled);
-                }
+                paramBean.setParamName(returnDesc);
             }
         }
-        return returnList;
     }
 
 
-    private static List<RequestParam> getQueryList(Project project, PsiMethod containingMethod) {
-        List<RequestParam> queryList = new ArrayList<>();
+    public static List<ParamBean> getQueryList(Project project, PsiMethod containingMethod) {
+        List<ParamBean> queryList = new ArrayList<>();
         PsiParameter[] parameters = containingMethod.getParameterList().getParameters();
         for (PsiParameter psiParameter : parameters) {
+            ThreadStack.pushVar(psiParameter);
             if(MyPsiTypesUtils.skipParams.contains(psiParameter.getType().getPresentableText())){
+                ThreadStack.popVar(psiParameter);
                 continue;
             }
             if(MyPsiTypesUtils.skipFiled.contains(psiParameter.getName())){
+                ThreadStack.popVar(psiParameter);
                 continue;
             }
-            List<RequestParam> query = getParam(project, psiParameter,containingMethod);
-            queryList.addAll(query);
+            final PsiClass parameterClass = MyPsiTypesUtils.getClassByType(psiParameter.getType());
+            if (Objects.isNull(parameterClass)){
+                throw new ErrorException("class not fount class name = "+psiParameter.getType().getCanonicalText());
+            }
+            ParamBean query = builderRequestParamsFromParameter(project, psiParameter,containingMethod);
+            if(Objects.nonNull(query)){
+                queryList.add(query);
+            }
+            //不放在finally中才能留下犯罪现场
+            ThreadStack.popVar(psiParameter);
         }
         return queryList;
     }
 
-    private static List<RequestParam> getParam(Project project, PsiVariable psiParameter, PsiMethod containingMethod) {
-        PsiType psiType = psiParameter.getType();
-        if(psiType instanceof PsiPrimitiveType){
-            //如果是基本类型
-            RequestParam query = new RequestParam();
-            query.setParamKey(psiParameter.getName());
-            query.setParamType(ApiParamBuildUtil.getType(psiType.getPresentableText()));
-            query.setParamName(DesUtil.getParamDesc(containingMethod,psiParameter.getName()));
-            query.setParamValue(DesUtil.getParamExp(containingMethod,psiParameter.getName()));
-            query.setParamValueList(DesUtil.getParamEnumValues(containingMethod,psiParameter.getName(),project));
-            PsiAnnotation notNull = psiParameter.getAnnotation("javax.validation.constraints.NotNull");
-            if(Objects.nonNull(notNull)){
-                query.setParamNotNull(0);
-            }
-            return ApiParamBuildUtil.singletonList(query);
-        }else if(MyPsiTypesUtils.isNormalType(psiType.getPresentableText())){
-            //如果是包装类型
-            RequestParam query = new RequestParam();
-            query.setParamKey(psiParameter.getName());
-            query.setParamType(ApiParamBuildUtil.getType(psiType.getPresentableText()));
-            query.setParamName(DesUtil.getParamDesc(containingMethod,psiParameter.getName()));
-            query.setParamValue(DesUtil.getParamExp(containingMethod,psiParameter.getName()));
-            query.setParamValueList(DesUtil.getParamEnumValues(containingMethod,psiParameter.getName(),project));
-            PsiAnnotation notNull = psiParameter.getAnnotation("javax.validation.constraints.NotNull");
-            if(Objects.nonNull(notNull)){
-                query.setParamNotNull(0);
-            }
-            return ApiParamBuildUtil.singletonList(query);
-        }else if(psiType.getPresentableText().startsWith("List") || psiType.getPresentableText().startsWith("Set")){
-            String[] types= psiType.getCanonicalText().split("<");
-            if(types.length>1){
-                String childPackage=types[1].split(">")[0];
-                RequestParam query = new RequestParam();
-                query.setParamKey(psiParameter.getName());
-                query.setParamType(ApiParamBuildUtil.getType(childPackage));
-                query.setParamName(DesUtil.getParamDesc(containingMethod,psiParameter.getName()));
-                List<RequestParam> requstParams = ApiParamBuildUtil.singletonList(query);
-                PsiClass psiClassChild = JavaPsiFacade.getInstance(project).findClass(childPackage, GlobalSearchScope.allScope(project));
-                requstParams.addAll(ApiParamBuildUtil.getParamListFromClass(psiClassChild,project,null,psiParameter.getName(), Arrays.asList(types)));
-                return requstParams;
-            }else{
-                throw new ErrorException(containingMethod,null,"参数"+psiParameter.getName()+"未加泛型");
-            }
-        }else if(psiType.getPresentableText().startsWith("Map")){
-            ApiParamBuildUtil.error("参数不支持Map",project);
-            throw new ErrorException(containingMethod,null,"参数不支持Map");
-        }else{ //object
-            List<String> types = new ArrayList<>();
-            PsiClass psiClassChild;
-            if(psiType.getCanonicalText().contains("<")){
-                String[] classNames = psiType.getCanonicalText().split("<");
-                String fieldType = classNames[0];
-                for (int i = 1 ; i<classNames.length;i++ ) {
-                    types.add(classNames[i]);
-                }
-                psiClassChild = JavaPsiFacade.getInstance(project).findClass(fieldType, GlobalSearchScope.allScope(project));
-            }else{
-                psiClassChild = JavaPsiFacade.getInstance(project).findClass(psiType.getCanonicalText(), GlobalSearchScope.allScope(project));
-            }
-            return ApiParamBuildUtil.getParamListFromClass(psiClassChild,project,null,null, types);
-        }
-    }
 
-    private String getType(String presentableText) {
-        if(presentableText.contains("Integer") || StringUtils.equals(presentableText,"int")){
-            return "int";
-        }
-        if(presentableText.contains("Long") || StringUtils.equals(presentableText,"long")){
-            return "long";
-        }
-        if(presentableText.contains("Byte") || StringUtils.equals(presentableText,"byte")){
-            return "byte";
-        }
-        if(presentableText.contains("String") || StringUtils.equals(presentableText,"String")){
-            return "string";
-        }
-        if(presentableText.contains("Double") || StringUtils.equals(presentableText,"double")){
-            return "double";
-        }
-        if(presentableText.contains("Float") || StringUtils.equals(presentableText,"float")){
-            return "float";
-        }
-        if(presentableText.contains("Date") || StringUtils.equals(presentableText,"Time")){
-            return "date";
-        }
-        return "object";
-    }
 
-    private static String getRequestUrl(PsiModifierListOwner target, String fullNameAnnotation, Project project) {
-        PsiAnnotation psiAnnotation= PsiAnnotationSearchUtil.findAnnotation(target, fullNameAnnotation);
-        if(Objects.isNull(psiAnnotation)){
+    //解析方法的的一个参数对象
+    private static ParamBean builderRequestParamsFromParameter(Project project, PsiParameter psiParameter, PsiMethod containingMethod) {
+        final PsiType psiType = psiParameter.getType();
+        if (MyPsiTypesUtils.isParameterDeprecated(psiParameter)){
             return null;
         }
-        PsiNameValuePair[] psiNameValuePairs= psiAnnotation.getParameterList().getAttributes();
-        if(psiNameValuePairs.length>0){
-            if(psiNameValuePairs[0].getLiteralValue()!=null) {
-                return psiNameValuePairs[0].getLiteralValue();
-            }else{
-                PsiAnnotationMemberValue psiAnnotationMemberValue=psiAnnotation.findAttributeValue("value");
-                if(psiAnnotationMemberValue.getReference()!=null){
-                    PsiReference reference = psiAnnotationMemberValue.getReference();
-                    PsiElement resolve = reference.resolve();
-                    String text = resolve.getText();
-                    String[] results= text.split("=");
-                    return results[results.length - 1].split(";")[0].replace("\"", "").trim();
-                }else{
-                    return null;
-                }
-            }
+        ParamBean.validIsNotSupportType(psiType,project);
+        //基本类型，构建一个请求参数对象
+       if(MyPsiTypesUtils.isPrimitiveOrDateType(psiType)){
+           return ParamBean.single(psiParameter.getName(),psiType, containingMethod.getDocComment(), psiParameter);
+       }else if(MyPsiTypesUtils.isCollectionType(psiType,project)){
+           final PsiType collectionDeepType = MyPsiTypesUtils.getCollectionGenericTypes(psiType,project,psiParameter.getName());
+           return ParamBean.build4List(collectionDeepType,project,psiParameter.getName(),containingMethod.getDocComment(),psiParameter);
+        }else{ //其他都认为是自定义Object类型
+           final ParamBean single = ParamBean.single( psiParameter.getName(), psiType, containingMethod.getDocComment(), psiParameter);
+           final List<ParamBean> paramListFromPsiType = getParamListFromPsiType(psiType, project, GenericTool.create(psiType));
+           single.setChildren(paramListFromPsiType);
+           return single;
         }
-        return null;
+    }
+
+    public static List<ParamBean> getParamListFromPsiType(PsiType psiType, Project project, GenericTool genericTypeStack) {
+        if(Objects.isNull(psiType)){
+            throw new ErrorException("缺少类型指定");
+        }
+        if (MyPsiTypesUtils.isVoid(psiType)){
+            return new ArrayList<>();
+        }
+        if(MyPsiTypesUtils.isPrimitiveOrDateType(psiType)){ //基本类型,啥也做不了
+            throw new ErrorException("不能使用对象解析器解析基本类型");
+        }
+        if (MyPsiTypesUtils.isCollectionType(psiType, project)||MyPsiTypesUtils.isArray(psiType)){
+            throw new ErrorException("接口一般情况我们不建议使用集合或者数组多层嵌套，这会让数据结构过于复杂，而且AMS也无法满足这种数据结构。");
+        }
+        ArrayList<ParamBean> paramList = new ArrayList<>();
+        final PsiClass psiClass = MyPsiTypesUtils.getClassByType(psiType);
+
+        if (Objects.isNull(psiClass)){
+            throw new ErrorException("未查找到的类型： class name ="+psiType.getCanonicalText());
+        }
+        PsiField[] fields = psiClass.getFields();
+        for (PsiField field : fields) {
+            ThreadStack.pushVar(field);
+            if(MyPsiTypesUtils.skipFiled.contains(field.getName())){
+                ThreadStack.popVar(field);
+                continue;
+            }
+            final ParamBean paramBean = changeField2RequestParam(field,genericTypeStack);
+            if (Objects. nonNull(paramBean)){
+                paramList.add(paramBean);
+            }
+            //不放在finally中，这样不执行以保证留下犯罪现场。
+            ThreadStack.popVar(field);
+        }
+
+        final List<ParamBean> supperParamList = getParamBeansFromSupperClass(project, psiClass,genericTypeStack);
+        if (CollectionUtils.isNotEmpty(supperParamList)){
+            paramList.addAll(supperParamList);
+        }
+        return paramList;
+    }
+
+    @Nullable
+    private static List<ParamBean> getParamBeansFromSupperClass(Project project, PsiClass psiClass, GenericTool genericTypeStack) {
+        final PsiClassType[] extendsListType = psiClass.getExtendsListTypes();
+        if (ArrayUtils.isEmpty(extendsListType) || StringUtils.equals(MyPsiTypesUtils.getClassByType(psiClass.getExtendsListTypes()[0]).getQualifiedName(),"java.lang.Object")){
+            return null;
+        }
+        final PsiClassType superPsiType = extendsListType[0];
+        return getParamListFromPsiType(superPsiType, project,genericTypeStack.explainSupperClass(superPsiType,project));
+    }
+
+    private static ParamBean changeField2RequestParam(PsiField field, GenericTool extGenericTypes) {
+        if (Objects.isNull(field)){
+            return null;
+        }
+        final String filedName = field.getName();
+        final PsiDocComment filedDocComment = field.getDocComment();
+
+        PsiType filedType = extGenericTypes.getPsiTypeAndDealGeneric(field);
+
+        if (MyPsiTypesUtils.isVoid(filedType)){
+            return null;
+        }
+
+        if (MyPsiTypesUtils.isPrimitiveOrDateType(filedType)){
+            return ParamBean.single(filedName,filedType,field.getDocComment(),field);
+        }
+        if (MyPsiTypesUtils.isCollectionType(filedType, field.getProject())){
+            final PsiType collectionDeepType = MyPsiTypesUtils.getCollectionGenericTypes(filedType, field.getProject(),filedName);
+            return ParamBean.build4List(collectionDeepType, field.getProject(),filedName,filedDocComment,field);
+        }
+        if (MyPsiTypesUtils.isArray(filedType)){
+            final PsiType collectionDeepType = MyPsiTypesUtils.getArrayType(filedType);
+            return ParamBean.build4List(collectionDeepType, field.getProject(),filedName,filedDocComment,field);
+        }
+
+        //其他都认为是Object类型
+        final ParamBean paramsBean = ParamBean.single(filedName,filedType,filedDocComment,field);
+        paramsBean.setParamType(ParamTypeEnum.OBJECT);
+        final List<ParamBean> paramListFromPsiType = getParamListFromPsiType(filedType, field.getProject(), GenericTool.create(filedType));
+        paramsBean.setChildren(paramListFromPsiType);
+        return paramsBean;
     }
 
 }
