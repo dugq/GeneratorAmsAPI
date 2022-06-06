@@ -6,6 +6,8 @@ import com.dugq.exception.ErrorException;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.content.Content;
 
+import java.util.Objects;
+
 /**
  * Created by dugq on 2021/4/7.
  */
@@ -17,9 +19,12 @@ public class TestApiUtil extends BasePrintUtil{
     }
 
     public static void show(Project project){
-        getKjjToolWindow(project).show(()->
-                        getContentManager(project).setSelectedContent(
-                                        getContentManager(project).findContent(WindowFactoryComponent.TEST_PANEL_NAME)));
+        final Content showContent = getContentManager(project).getSelectedContent();
+        final Content content = getContentManager(project).findContent(WindowFactoryComponent.TEST_PANEL_NAME);
+        if (!Objects.equals(showContent,content)){
+            getKjjToolWindow(project).show(()->
+                    getContentManager(project).setSelectedContent(content));
+        }
     }
 
     public static void printException(Exception e, Project project) {

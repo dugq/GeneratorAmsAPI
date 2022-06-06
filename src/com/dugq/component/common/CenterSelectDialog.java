@@ -18,14 +18,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
+ * 选择弹框
  * @author dugq
  * @date 2021/8/12 2:46 下午
  */
 public class CenterSelectDialog<T> extends DialogWrapper {
-    private List<CenterSelectBean<T>> currentGroupList;
-    private List<CenterSelectBean<T>> selectedList = new ArrayList<>();
-    private JComboBox box;
-    private MyClickButton jButton;
+    protected List<CenterSelectBean<T>> currentGroupList;
+    protected List<CenterSelectBean<T>> selectedList = new ArrayList<>();
+    protected JComboBox box;
+    protected MyClickButton jButton;
 
     public CenterSelectDialog( String title,List<CenterSelectBean<T>> currentGroupList){
         super(true);
@@ -48,7 +49,7 @@ public class CenterSelectDialog<T> extends DialogWrapper {
 
 
     @NotNull
-    private static <K> List<CenterSelectBean<K>> getCollect(List<K> groupList, Function<K, String> key, Function<K, List<K>> children) {
+    protected static <K> List<CenterSelectBean<K>> getCollect(List<K> groupList, Function<K, String> key, Function<K, List<K>> children) {
         return groupList.stream().map(t -> {
             CenterSelectBean<K> bean = new CenterSelectBean<>();
             bean.setName(key.apply(t));
@@ -136,4 +137,5 @@ public class CenterSelectDialog<T> extends DialogWrapper {
     public void setCustomButton(MyClickButton jButton) {
         this.jButton = jButton;
     }
+
 }

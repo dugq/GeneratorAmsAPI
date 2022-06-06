@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.dugq.bean.ResponseBean;
 import com.dugq.component.common.CenterSelectDialog;
+import com.dugq.component.common.CenterSelectDialogWithSearch;
 import com.dugq.component.common.MyClickButton;
 import com.dugq.exception.ErrorException;
 import com.dugq.exception.StopException;
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
  * @author dugq
  * @date 2021/8/11 9:16 下午
  */
-public class YapiInterfaceService extends YapiBaseService{
+public class YapiInterfaceService implements YapiBaseService{
     private final Project project;
     private final YaiSearchService yaiSearchService;
     private final YapiProjectService yapiProjectService;
@@ -80,7 +81,7 @@ public class YapiInterfaceService extends YapiBaseService{
         try {
             final ResponseBean responseBean = sendGet(UrlFactory.projectApiListUrl, params);
             final String responseBody = responseBean.getResponseBody();
-            ResultBean<SimpleListApiResult> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<SimpleListApiResult>>(){});
+            ResultBean<SimpleListApiResult> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<SimpleListApiResult>>(ResultBean.class,SimpleListApiResult.class){});
             if (!result.isSuccess()){
                 throw new ErrorException("查询api列表失败 errorcode="+result.getErrcode()+"errmsg="+result.getErrmsg());
             }
@@ -103,7 +104,7 @@ public class YapiInterfaceService extends YapiBaseService{
 
 
     @Override
-    Project getProject() {
+    public Project getProject() {
         return project;
     }
 
@@ -124,7 +125,7 @@ public class YapiInterfaceService extends YapiBaseService{
         long projectId = getProjectId();
         long apiId = getApiId(apiUploadBean,projectId,supportUpdate);
         editApi(apiUploadBean,apiId);
-        return UrlFactory.host+"/project/"+projectId+"/interface/api/"+apiId;
+        return configService.getHost()+"/project/"+projectId+"/interface/api/"+apiId;
     }
 
     private void editApi(ApiBean apiUploadBean, long apiId) {
@@ -151,7 +152,6 @@ public class YapiInterfaceService extends YapiBaseService{
         yapiApiBean.setStatus("done");
 
         try {
-            System.out.println(JSON.toJSONString(yapiApiBean));
             final ResponseBean responseBean = sendPost(UrlFactory.editApiUrl, yapiApiBean);
             if (!responseBean.isSuccess()){
                 throw new ErrorException("保存接口调用失败:"+responseBean.getStatus());
@@ -235,7 +235,7 @@ public class YapiInterfaceService extends YapiBaseService{
                 normalQuery.setDesc(paramBean.getParamName());
                 normalQuery.setExample(paramBean.getParamValue());
                 normalQuery.setName(paramBean.getParamKey());
-                normalQuery.setRequired(paramBean.getParamNotNull());
+                normalQuery.setRequired((paramBean.getParamNotNull()+1)%2);
                 queryBeans.add(normalQuery);
             }
         }
@@ -252,7 +252,7 @@ public class YapiInterfaceService extends YapiBaseService{
             if (!responseBean.isSuccess()){
                 throw new ErrorException("查询API详情失败");
             }
-            ResultBean<YapiApiModel> result = JSON.parseObject(responseBean.getResponseBody(), new TypeReference<ResultBean<YapiApiModel>>(){});
+            ResultBean<YapiApiModel> result = JSON.parseObject(responseBean.getResponseBody(), new TypeReference<ResultBean<YapiApiModel>>(ResultBean.class,YapiApiModel.class){});
             if (!result.isSuccess()){
                 throw new ErrorException("查询API详情失败，请重试");
             }
@@ -299,7 +299,7 @@ public class YapiInterfaceService extends YapiBaseService{
             if (!responseBean.isSuccess()){
                 throw new ErrorException("新建API失败 response status="+responseBean.getStatus());
             }
-            ResultBean<YapiApiModel> result = JSON.parseObject(responseBean.getResponseBody(), new TypeReference<ResultBean<YapiApiModel>>(){});
+            ResultBean<YapiApiModel> result = JSON.parseObject(responseBean.getResponseBody(), new TypeReference<ResultBean<YapiApiModel>>(ResultBean.class,YapiApiModel.class){});
             if (!result.isSuccess()){
                 throw new ErrorException("查询api列表失败 errorcode="+result.getErrcode()+"errmsg="+result.getErrmsg());
             }
@@ -312,7 +312,7 @@ public class YapiInterfaceService extends YapiBaseService{
     @NotNull
     private Long getMenuId(long projectId) {
         final List<YapiMenuBean> menuList = yapiMenuService.getMenuList(projectId);
-        final CenterSelectDialog<YapiMenuBean> menuDialog = CenterSelectDialog.getInstance("请选择接口分类",menuList,YapiMenuBean::getName,null);
+        final CenterSelectDialogWithSearch<YapiMenuBean> menuDialog = CenterSelectDialogWithSearch.getSearchInstance("请选择接口分类",menuList,YapiMenuBean::getName,null);
         final MyClickButton createMenuButton = new MyClickButton("新建分类", event -> {
             menuDialog.close(-1);
         }, 100);
@@ -326,5 +326,4 @@ public class YapiInterfaceService extends YapiBaseService{
         }
         return menuDialog.getLastSelect().getId();
     }
-
 }

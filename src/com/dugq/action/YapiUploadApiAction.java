@@ -16,6 +16,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
@@ -46,6 +47,7 @@ public class YapiUploadApiAction extends AnAction {
             if (CollectionUtils.isNotEmpty(apiList)){
                 doUpload(apiList,project);
             }
+            Messages.showInfoMessage(project,"上传成功","yapi");
         }catch (StopException e){
             //skip
         }catch (ErrorException e){

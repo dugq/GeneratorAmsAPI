@@ -25,30 +25,37 @@ import java.util.Objects;
  */
 public class YapiUserService {
 
-    private String cookie;
-    private final Project project;
-    private final YapiConfigService configService;
+    protected String cookie;
+    protected final Project project;
+    protected final YapiConfigService configService;
 
     public YapiUserService(Project project) {
         this.project = project;
         configService = project.getService(YapiConfigService.class);
     }
 
-    private String login() {
+    protected String login(boolean isUser) {
         YapiConfigBean configBean = getYapiConfigBean();
         LoginParam loginParam =getLoginParam(configBean);
         try {
-            final ResponseBean responseBean = HttpExecuteService.doPost(UrlFactory.host +UrlFactory.loginUrl, null, JSON.toJSONString(loginParam));
+            if (Objects.isNull(configBean.getLoginType())){
+                throw new ErrorException("未选择登陆方式！");
+            }
+            final String url = loginParam.getHost() + (StringUtils.equalsIgnoreCase(configBean.getLoginType(),YapiConfigBean.LOGIN_TYPE_SOURCE)?UrlFactory.loginUrl:UrlFactory.ldapLoginUrl);
+
+            final ResponseBean responseBean = HttpExecuteService.doPost(url, null, JSON.toJSONString(loginParam));
             if (!responseBean.isSuccess()){
                 throw new ErrorException("YAPI账号登陆失败。如账号密码错误，请在.idea"+YapiConfigService.yapiConfigFile+"中修改账号密码");
             }
             final String responseBody = responseBean.getResponseBody();
-            ResultBean<LoginResult> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<LoginResult>>(){});
+            ResultBean<LoginResult> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<LoginResult>>(ResultBean.class,LoginResult.class){});
             if (!result.isSuccess()){
                 throw new ErrorException("YAPI账号登陆失败。code="+result.getErrmsg()+"msg="+result.getErrmsg());
             }
             configBean.setUserId(result.getData().getUserId());
-            configService.save(configBean);
+            if (isUser){
+                configService.save(configBean);
+            }
             return responseBean.getCookies();
         } catch (IOException e) {
             e.printStackTrace();
@@ -61,16 +68,17 @@ public class YapiUserService {
         LoginParam param = new LoginParam();
         param.setEmail(configBean.getEmail());
         param.setPassword(configBean.getPassword());
+        param.setHost(configBean.getServer());
         return param;
     }
 
     @NotNull
-    private YapiConfigBean getYapiConfigBean() {
+    protected YapiConfigBean getYapiConfigBean() {
         YapiConfigBean configBean = configService.read();
         if (Objects.isNull(configBean)){
             configBean = new YapiConfigBean();
         }
-        if (Objects.isNull(configBean.getEmail())){
+        if (Objects.isNull(configBean.getEmail()) || StringUtils.isBlank(configBean.getServer())){
             letUserSetEmailAndPwd(configBean);
         }
         return configBean;
@@ -79,13 +87,13 @@ public class YapiUserService {
     public String getCookie(){
         final YapiConfigBean configBean = configService.read();
         if (Objects.isNull(configBean) || StringUtils.isBlank(cookie)){
-            return cookie = login();
+            return cookie = login(true);
         }
         return cookie;
     }
 
     public void refreshToken(){
-        this.cookie = login();
+        this.cookie = login(true);
     }
 
     private void letUserSetEmailAndPwd(YapiConfigBean configBean) {
@@ -96,5 +104,7 @@ public class YapiUserService {
         }
         configBean.setEmail(loginForm.getEmail());
         configBean.setPassword(loginForm.getPassword());
+        configBean.setServer(loginForm.getServer());
+        configBean.setLoginType(loginForm.getLoginType());
     }
 }

@@ -13,7 +13,7 @@ import java.util.Objects;
  * @date 2021/8/13 2:06 下午
  */
 public enum YapiParamType {
-    STRING("String"),
+    STRING("string"),
     BOOLEAN("boolean"),
     ARRAY("array"),
     OBJECT("object"),

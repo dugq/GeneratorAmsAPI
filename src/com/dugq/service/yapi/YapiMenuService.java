@@ -21,7 +21,7 @@ import java.util.Objects;
  * @author dugq
  * @date 2021/8/11 9:11 下午
  */
-public class YapiMenuService extends YapiBaseService{
+public class YapiMenuService implements YapiBaseService{
     private final Project project;
     public YapiMenuService(Project project) {
         this.project = project;
@@ -33,7 +33,7 @@ public class YapiMenuService extends YapiBaseService{
         try {
             final ResponseBean responseBean = sendGet(UrlFactory.listMenu, params);
             final String responseBody = responseBean.getResponseBody();
-            ResultBean<List<YapiMenuBean>> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<List<YapiMenuBean>>>(){});
+            ResultBean<List<YapiMenuBean>> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<List<YapiMenuBean>>>(ResultBean.class,List.class,YapiMenuBean.class){});
             if (!result.isSuccess()){
                 throw new ErrorException("获取分类列表失败 errorcode="+result.getErrcode()+"errmsg="+result.getErrmsg());
             }
@@ -44,7 +44,7 @@ public class YapiMenuService extends YapiBaseService{
     }
 
     @Override
-    Project getProject() {
+    public Project getProject() {
         return project;
     }
 
@@ -65,7 +65,7 @@ public class YapiMenuService extends YapiBaseService{
             yapiMenuBean.setProjectId(projectId);
             final ResponseBean responseBean = sendPost(UrlFactory.addMenu, yapiMenuBean);
             final String responseBody = responseBean.getResponseBody();
-            ResultBean<YapiMenuBean> response = JSON.parseObject(responseBody, new TypeReference<ResultBean<YapiMenuBean>>(){});
+            ResultBean<YapiMenuBean> response = JSON.parseObject(responseBody, new TypeReference<ResultBean<YapiMenuBean>>(ResultBean.class,YapiMenuBean.class){});
             if (!response.isSuccess()){
                 throw new ErrorException("新增分类失败 errorcode="+response.getErrcode()+"errmsg="+response.getErrmsg());
             }

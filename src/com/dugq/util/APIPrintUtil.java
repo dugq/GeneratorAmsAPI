@@ -55,7 +55,7 @@ public class APIPrintUtil extends BasePrintUtil{
         AmsToolPanel amsToolPanel = getAmsToolPanel(project);
         amsToolPanel.append("接口描述:   ")
         .appendLine(param.getApiName(),Color.GREEN)
-        .append((Objects.equals(param.getApiRequestType(),0)?"  Post   ":"  Get   "),Color.GREEN)
+        .append((Objects.equals(param.getApiRequestType().getType(),0)?"  Post   ":"  Get   "),Color.GREEN)
         .appendLine(param.getApiURI(),Color.blue)
         .appendLine("-------param--------",Color.GRAY)
         .append(param.getApiParamBean())

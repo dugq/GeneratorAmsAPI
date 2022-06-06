@@ -34,6 +34,7 @@ public final class TestApiService {
     }
 
     public void sendCurrentRequest(TestApiBean testApiBean, TestApiPanel testApiPanel) throws IOException {
+        testApiPanel.clearResponse();
         final MainPanel mainPanel = testApiPanel.getMainContent();
         String host = mainPanel.getHost();
         if (StringUtils.isBlank(host)){
@@ -67,7 +68,10 @@ public final class TestApiService {
         Map<String, String> globalParamMap = testApiPanel.getGlobalParamMap();
         for (KeyValueBean requestParam : requestParams.getApiParamBean().getRequestParams()) {
             if (StringUtils.isBlank(requestParam.getValue())){
-                paramMap.put(requestParam.getKey(),globalParamMap.get(requestParam.getKey()));
+                final String value = globalParamMap.get(requestParam.getKey());
+                if (StringUtils.isNotBlank(value)){
+                    paramMap.put(requestParam.getKey(), value);
+                }
             }else{
                 paramMap.put(requestParam.getKey(),requestParam.getValue());
             }

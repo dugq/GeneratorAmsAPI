@@ -16,7 +16,7 @@ import java.util.Map;
  * @author dugq
  * @date 2021/8/11 9:28 下午
  */
-public class YaiSearchService extends YapiBaseService{
+public class YaiSearchService implements YapiBaseService{
     private final Project project;
 
     public YaiSearchService(Project project) {
@@ -29,7 +29,7 @@ public class YaiSearchService extends YapiBaseService{
         try {
             final ResponseBean responseBean = sendGet(UrlFactory.searchUrl, params);
             final String responseBody = responseBean.getResponseBody();
-            ResultBean<YapiSearchResult> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<YapiSearchResult>>(){});
+            ResultBean<YapiSearchResult> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<YapiSearchResult>>(ResultBean.class,YapiSearchResult.class){});
             if (!result.isSuccess()){
                 throw new ErrorException("查询失败 errorcode="+result.getErrcode()+"errmsg="+result.getErrmsg());
             }
@@ -40,7 +40,7 @@ public class YaiSearchService extends YapiBaseService{
     }
 
     @Override
-    Project getProject() {
+    public Project getProject() {
         return project;
     }
 }

@@ -24,7 +24,7 @@ import java.util.Objects;
  * @author dugq
  * @date 2021/8/11 8:38 下午
  */
-public class YapiProjectService extends YapiBaseService{
+public class YapiProjectService implements YapiBaseService{
     private final Project project;
     private final YapiConfigService configService;
     private final YapiGroupService yapiGroupService;
@@ -36,7 +36,7 @@ public class YapiProjectService extends YapiBaseService{
     }
 
     @Override
-    Project getProject() {
+    public Project getProject() {
         return project;
     }
 
@@ -76,7 +76,7 @@ public class YapiProjectService extends YapiBaseService{
         try {
             final ResponseBean responseBean = sendGet(UrlFactory.projectUrl, params);
             final String responseBody = responseBean.getResponseBody();
-            ResultBean<ListBean<YapiProjectBean>> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<ListBean<YapiProjectBean>>>(){});
+            ResultBean<ListBean<YapiProjectBean>> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<ListBean<YapiProjectBean>>>(ResultBean.class,ListBean.class,YapiProjectBean.class){});
             if (!result.isSuccess()){
                 throw new ErrorException("获取项目列表失败 errorcode="+result.getErrcode()+"errmsg="+result.getErrmsg());
             }

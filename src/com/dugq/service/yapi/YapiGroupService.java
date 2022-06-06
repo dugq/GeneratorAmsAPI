@@ -22,7 +22,7 @@ import java.util.Objects;
  * @author dugq
  * @date 2021/8/11 8:03 下午
  */
-public class YapiGroupService extends YapiBaseService{
+public class YapiGroupService implements YapiBaseService{
 
     private final Project project;
     private final YapiConfigService configService;
@@ -33,7 +33,7 @@ public class YapiGroupService extends YapiBaseService{
     }
 
     @Override
-    Project getProject() {
+    public Project getProject() {
         return project;
     }
 
@@ -76,7 +76,7 @@ public class YapiGroupService extends YapiBaseService{
                 throw new ErrorException("获取空间列表失败 response status="+responseBean.getStatus());
             }
             final String responseBody = responseBean.getResponseBody();
-            ResultBean<List<GroupBean>> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<List<GroupBean>>>(){});
+            ResultBean<List<GroupBean>> result = JSON.parseObject(responseBody, new TypeReference<ResultBean<List<GroupBean>>>(ResultBean.class,List.class,GroupBean.class){});
             if (!result.isSuccess()){
                 throw new ErrorException("获取空间列表失败  errorcode="+result.getErrcode()+"  errmsg="+result.getErrmsg());
             }

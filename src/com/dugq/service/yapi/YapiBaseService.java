@@ -3,6 +3,7 @@ package com.dugq.service.yapi;
 import com.alibaba.fastjson.JSON;
 import com.dugq.bean.ResponseBean;
 import com.dugq.http.HttpExecuteService;
+import com.dugq.service.config.impl.YapiConfigService;
 import com.intellij.openapi.project.Project;
 
 import java.io.IOException;
@@ -13,35 +14,43 @@ import java.util.Map;
  * @author dugq
  * @date 2021/8/11 7:56 下午
  */
-public abstract class YapiBaseService {
+public interface YapiBaseService {
 
-    public ResponseBean sendPost( String url,Object param) throws IOException {
-        YapiUserService userService = getProject().getService(YapiUserService.class);
+    default ResponseBean sendPost( String url,Object param) throws IOException {
+        YapiUserService userService = getUserService();
         Map<String,String> headers = new HashMap<>();
         try {
             headers.put("Cookie",userService.getCookie());
-            return HttpExecuteService.doPost(UrlFactory.host +url, headers, JSON.toJSONString(param));
+            return HttpExecuteService.doPost(getHost() +url, headers, JSON.toJSONString(param));
         }catch (IOException e){
             userService.refreshToken();
             headers.put("Cookie",userService.getCookie());
-            return HttpExecuteService.doPost(UrlFactory.host +url, headers, JSON.toJSONString(param));
+            return HttpExecuteService.doPost(getHost() +url, headers, JSON.toJSONString(param));
         }
     }
 
-    public ResponseBean sendGet(String url,Map<String,String> paramMap)throws IOException{
-        YapiUserService userService = getProject().getService(YapiUserService.class);
+    default String getHost(){
+        return getProject().getService(YapiConfigService.class).getHost();
+    }
+
+    default YapiUserService getUserService() {
+        return getProject().getService(YapiUserService.class);
+    }
+
+    default ResponseBean sendGet(String url,Map<String,String> paramMap)throws IOException{
+        YapiUserService userService = getUserService();
         try {
             Map<String,String> headers = new HashMap<>();
             headers.put("Cookie",userService.getCookie());
-            return HttpExecuteService.sendGet(UrlFactory.host +url, headers,paramMap);
+            return HttpExecuteService.sendGet(getHost() +url, headers,paramMap);
         }catch (IOException e){
             userService.refreshToken();
             Map<String,String> headers = new HashMap<>();
             headers.put("Cookie",userService.getCookie());
-            return HttpExecuteService.sendGet(UrlFactory.host +url, headers,paramMap);
+            return HttpExecuteService.sendGet(getHost() +url, headers,paramMap);
         }
     }
 
-    abstract Project getProject();
+    Project getProject();
 
 }

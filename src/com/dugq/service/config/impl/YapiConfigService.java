@@ -2,7 +2,9 @@ package com.dugq.service.config.impl;
 
 import com.dugq.pojo.yapi.YapiConfigBean;
 import com.dugq.service.config.AbstractSingleValueConfigService;
+import com.dugq.service.yapi.UrlFactory;
 import com.intellij.openapi.project.Project;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * @author dugq
@@ -16,4 +18,11 @@ public class YapiConfigService extends AbstractSingleValueConfigService<YapiConf
         super(project,yapiConfigFile,YapiConfigBean.class);
     }
 
+    public String getHost(){
+        final String server = read().getServer();
+        if (StringUtils.isBlank(server)){
+            return UrlFactory.host;
+        }
+        return server;
+    }
 }

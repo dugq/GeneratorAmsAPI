@@ -1,17 +1,17 @@
 <idea-plugin>
-<id>com.dugq.dugq</id>
-<name>generatoramsapi</name>
-<version>5.0.0</version>
-<vendor email="dgqngu@163.com" url="http://www.dui88.com">兑吧</vendor>
+  <id>com.dugq.dugq</id>
+  <name>generatoramsapi</name>
+  <version>5.1.1</version>
+  <vendor email="dgqngu@163.com" url="http://www.dui88.com">兑吧</vendor>
 
-<description>
-  <![CDATA[
+  <description>
+    <![CDATA[
   <h2>1、上传接口到AMS上</h2>
   <h2>2、打印接口信息，用于技术方案的编写</h2>
   <h2>3、测试接口，自动生成请求URL和参数</h2>
   <h2>4、测试RPC接口</h2>
   ]]>
-</description>
+  </description>
 
   <change-notes>
     <![CDATA[
@@ -19,68 +19,52 @@
       ]]>
   </change-notes>
 
-<!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
-     on how to target different products -->
+  <idea-version since-build="201.0"/>
 
-<idea-version since-build="201.0"/>
+  <extensions defaultExtensionNs="com.intellij">
+    <projectService serviceImplementation="com.dugq.service.TestApiService"/>
+    <projectService serviceImplementation="com.dugq.service.config.impl.ApiConfigService"/>
+    <projectService serviceImplementation="com.dugq.service.config.impl.GlobalHeadersConfigService"/>
+    <projectService serviceImplementation="com.dugq.service.config.impl.GlobalHostConfigService"/>
+    <projectService serviceImplementation="com.dugq.service.config.impl.GlobalParamConfigService"/>
+    <projectService serviceImplementation="com.dugq.service.config.impl.YapiConfigService"/>
+    <projectService serviceImplementation="com.dugq.service.yapi.YapiUserService"/>
+    <projectService serviceImplementation="com.dugq.service.yapi.YapiGroupService"/>
+    <projectService serviceImplementation="com.dugq.service.yapi.YapiProjectService"/>
+    <projectService serviceImplementation="com.dugq.service.yapi.YapiMenuService"/>
+    <projectService serviceImplementation="com.dugq.service.yapi.YaiSearchService"/>
+    <projectService serviceImplementation="com.dugq.service.yapi.YapiInterfaceService"/>
+    <projectService serviceImplementation="com.dugq.service.yapi.YapiAdminService"/>
+    <projectService serviceImplementation="com.dugq.service.project.ProjectApiService"/>
+    <projectService serviceImplementation="com.dugq.service.FeignApiService"/>
+    <!--canCloseContents 允许用户关闭-->
+    <toolWindow canCloseContents="false" anchor="bottom" order="last"
+                id="KJJ"
+                factoryClass="com.dugq.component.tool.WindowFactoryComponent">
+    </toolWindow>
 
-<extensions defaultExtensionNs="com.intellij">
-
-
-  <projectService serviceImplementation="com.dugq.service.TestApiService"/>
-  <projectService serviceImplementation="com.dugq.service.config.impl.ApiConfigService"/>
-  <projectService serviceImplementation="com.dugq.service.config.impl.GlobalHeadersConfigService"/>
-  <projectService serviceImplementation="com.dugq.service.config.impl.GlobalHostConfigService"/>
-  <projectService serviceImplementation="com.dugq.service.config.impl.GlobalParamConfigService"/>
-
-  <projectService serviceImplementation="com.dugq.service.config.impl.YapiConfigService"/>
-  <projectService serviceImplementation="com.dugq.service.yapi.YapiUserService"/>
-  <projectService serviceImplementation="com.dugq.service.yapi.YapiGroupService"/>
-  <projectService serviceImplementation="com.dugq.service.yapi.YapiProjectService"/>
-  <projectService serviceImplementation="com.dugq.service.yapi.YapiMenuService"/>
-  <projectService serviceImplementation="com.dugq.service.yapi.YaiSearchService"/>
-  <projectService serviceImplementation="com.dugq.service.yapi.YapiInterfaceService"/>
-
-  <projectService serviceImplementation="com.dugq.service.project.ProjectApiService"/>
-
-  <projectService serviceImplementation="com.dugq.service.FeignApiService"/>
-
-
-  <!--canCloseContents 允许用户关闭-->
-  <toolWindow canCloseContents="false" anchor="bottom" order="last"
-              id="KJJ"
-              factoryClass="com.dugq.component.tool.WindowFactoryComponent">
-  </toolWindow>
-
-</extensions>
-<actions>
-  <group id="KJJ menu group">
-    <action id="clearOut" class="com.dugq.action.ClearAction" text="Clean">
+  </extensions>
+  <actions>
+    <group id="KJJ menu group">
+      <action id="clearOut" class="com.dugq.action.ClearAction" text="Clean">
+      </action>
+    </group>
+    <!-- Add your actions here -->
+    <action id="uploadAPI" class="com.dugq.action.AddYapiProjectPerssionAction" text="申请权限">
+      <add-to-group group-id="GenerateGroup" anchor="first"/>
     </action>
-  </group>
-  <!-- Add your actions here -->
-  <action id="testAPI" class="com.dugq.action.TestApiAction" text="测试接口">
-    <add-to-group group-id="GenerateGroup" anchor="first"/>
-  </action>
-
-  <action id="printAPI" class="com.dugq.action.PrintApiAction" text="打印ams接口">
-    <add-to-group group-id="GenerateGroup" anchor="first"/>
-  </action>
-  <action id="uploadAPI" class="com.dugq.action.AmsUploadApiAction" text="上传ams接口">
-    <add-to-group group-id="GenerateGroup" anchor="first"/>
-  </action>
-  <action id="uploadAPI2Yapi" class="com.dugq.action.YapiUploadApiAction" text="上传YAPI接口">
-    <add-to-group group-id="GenerateGroup" anchor="first"/>
-  </action>
-
-  <action id="movingApi" class="com.dugq.action.Ams2YapiAction" text="迁移API">
-    <add-to-group group-id="GenerateGroup" anchor="last"/>
-  </action>
-
-
-</actions>
-<depends>com.intellij.modules.platform</depends>
-<depends>com.intellij.modules.java</depends>
-<depends>com.intellij.modules.xml</depends>
+    <action id="testAPI" class="com.dugq.action.TestApiAction" text="测试接口">
+      <add-to-group group-id="GenerateGroup" anchor="first"/>
+    </action>
+    <action id="printAPI" class="com.dugq.action.PrintApiAction" text="打印接口">
+      <add-to-group group-id="GenerateGroup" anchor="first"/>
+    </action>
+    <action id="uploadAPI2Yapi" class="com.dugq.action.YapiUploadApiAction" text="上传接口">
+      <add-to-group group-id="GenerateGroup" anchor="first"/>
+    </action>
+  </actions>
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.java</depends>
+  <depends>com.intellij.modules.xml</depends>
 
 </idea-plugin>

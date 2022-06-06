@@ -10,6 +10,8 @@ public interface UrlFactory {
 
       String loginUrl = "/api/user/login";
 
+      String ldapLoginUrl = "/api/user/login_by_ldap";
+
     /**
      * 空间列表
      */
@@ -19,6 +21,8 @@ public interface UrlFactory {
      * 项目列表
      */
     String projectUrl = "/api/project/list";
+
+    String addProjectPermissionUrl = "/api/project/add_member";
 
     /**
      * api列表

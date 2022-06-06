@@ -9,6 +9,9 @@ import java.io.Serializable;
 public class YapiConfigBean implements Serializable {
     private static final long serialVersionUID = -8013090380100636128L;
 
+    public static final String LOGIN_TYPE_LDAP = "LDAP";
+    public static final String LOGIN_TYPE_SOURCE = "source";
+
     private String email;
 
     private String password;
@@ -18,6 +21,26 @@ public class YapiConfigBean implements Serializable {
     private Long currentProject;
 
     private Long userId;
+
+    private String server;
+
+    private String loginType;
+
+    public String getLoginType() {
+        return loginType;
+    }
+
+    public void setLoginType(String loginType) {
+        this.loginType = loginType;
+    }
+
+    public String getServer() {
+        return server;
+    }
+
+    public void setServer(String server) {
+        this.server = server;
+    }
 
     public Long getCurrentGroup() {
         return currentGroup;
