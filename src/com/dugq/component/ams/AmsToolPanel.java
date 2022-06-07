@@ -2,20 +2,17 @@ package com.dugq.component.ams;
 
 import com.dugq.component.tool.KjjMenu;
 import com.dugq.pojo.ParamBean;
+import com.intellij.execution.filters.TextConsoleBuilderFactory;
+import com.intellij.execution.impl.ConsoleViewImpl;
+import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
-import com.intellij.openapi.ui.Splitter;
 import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.ui.ScrollPaneFactory;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.*;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
-import java.awt.*;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -25,36 +22,25 @@ public class AmsToolPanel extends SimpleToolWindowPanel {
 
     private final Project project;
     private final ToolWindow toolWindow;
-    private final Splitter splitter;
-    private final JTextPane information;
-    private final StyledDocument styledDocument;
+    private ConsoleViewImpl information;
 
     public AmsToolPanel(Project p, ToolWindow t) {
         super(true, true);
         this.project = p;
         this.toolWindow = t;
-        this.splitter = new Splitter(false, 0.75f);
-        this.information = new JTextPane();
-        this.information.setEditable(false);
-        setContent(splitter);
-        splitter.setFirstComponent(ScrollPaneFactory.createScrollPane(information));
+        information = (ConsoleViewImpl)TextConsoleBuilderFactory.getInstance().createBuilder(project).getConsole();
+        final JComponent component = information.getComponent();
+        setContent(component);
         information.addMouseListener(new KjjMenu(information));
-        this.styledDocument = information.getStyledDocument();
     }
 
     public AmsToolPanel append(String msg){
-        append(msg,Color.BLACK);
+        information.print(msg, ConsoleViewContentType.NORMAL_OUTPUT);
         return this;
     }
 
-    public AmsToolPanel append(String msg,Color color){
-        SimpleAttributeSet attr = new SimpleAttributeSet();
-        StyleConstants.setForeground(attr,color);
-        try {
-            styledDocument.insertString(styledDocument.getLength(),msg,attr);
-        } catch (BadLocationException e) {
-            e.printStackTrace();
-        }
+    public AmsToolPanel append(String msg,ConsoleViewContentType color){
+        information.print(msg, color);
         return this;
     }
 
@@ -64,39 +50,28 @@ public class AmsToolPanel extends SimpleToolWindowPanel {
     }
 
     public AmsToolPanel enterLine(){
-        SimpleAttributeSet attr = new SimpleAttributeSet();
-        StyleConstants.setForeground(attr,Color.BLACK);
-        try {
-            styledDocument.insertString(styledDocument.getLength(),"\n",attr);
-        } catch (BadLocationException e) {
-            e.printStackTrace();
-        }
+        information.print("\n",ConsoleViewContentType.NORMAL_OUTPUT);
         return this;
     }
 
-    public AmsToolPanel appendLine(String msg , Color color){
-
-        SimpleAttributeSet attr = new SimpleAttributeSet();
-        StyleConstants.setForeground(attr,color);
-        try {
-            styledDocument.insertString(styledDocument.getLength(),msg,attr);
-            styledDocument.insertString(styledDocument.getLength(),"\n",attr);
-        } catch (BadLocationException e) {
-            e.printStackTrace();
-        }
+    public AmsToolPanel appendLine(String msg , ConsoleViewContentType color){
+        information.print(msg+"\n",color);
         return this;
     }
 
-    public void appendErrorLine(String msg){
-        appendLine(msg,Color.red);
+    public AmsToolPanel appendErrorLine(String msg){
+        appendLine(msg, ConsoleViewContentType.ERROR_OUTPUT);
+        return this;
     }
 
-    public void appendWarnLine(String msg){
-        appendLine(msg,Color.orange);
+    public AmsToolPanel appendWarnLine(String msg){
+        appendLine(msg, ConsoleViewContentType.LOG_WARNING_OUTPUT);
+        return this;
     }
 
-    public void appendInfoLine(String msg){
-        appendLine(msg,Color.BLUE);
+    public AmsToolPanel appendInfoLine(String msg){
+        appendLine(msg, ConsoleViewContentType.NORMAL_OUTPUT);
+        return this;
     }
 
     public AmsToolPanel append(List<ParamBean> apiParamBean) {
@@ -108,34 +83,50 @@ public class AmsToolPanel extends SimpleToolWindowPanel {
         if (CollectionUtils.isEmpty(apiParamBean)){
             return;
         }
+        final Integer max = apiParamBean.stream().map(bean -> bean.getParamKey().length()).max(Comparator.comparing(in -> in)).get();
         for (ParamBean paramBean : apiParamBean) {
-            append(getBlank(blankLength))
-            .append(paramBean.getParamKey(),Color.CYAN)
-            .append("  :  ")
-            .append(paramBean.getParamType().getName(),Color.ORANGE)
-            .append("  ;  ");
+            append(getFrontBlank(blankLength))
+            .append(paramBean.getParamKey())
+            .append(getBlank(max+3-paramBean.getParamKey().length())+":  ")
+            .append(paramBean.getParamType().getName())
+            .append(getBlank(8-paramBean.getParamType().getName().length())+";  ");
             if (StringUtils.isBlank(paramBean.getParamName())){
-                appendLine("自行填充字段描述",Color.RED);
+                appendLine("自行填充字段描述",ConsoleViewContentType.ERROR_OUTPUT);
             }else{
-                appendLine(paramBean.getParamName(),Color.YELLOW);
+                appendLine(paramBean.getParamName());
             }
             final List<ParamBean> children = paramBean.getChildren();
             doPrintParamBean(children,blankLength+1);
         }
     }
 
-    public String getBlank(int num){
+    public String getFrontBlank(int num){
         if(num==0){
             return "";
         }
         StringBuilder sb = new StringBuilder();
         for (int i =0 ; i<num*4; i++){
+            if (i%4==0){
+                sb.append("├");
+            }else{
+                sb.append("-");
+            }
+        }
+        return sb.toString();
+    }
+
+    public String getBlank(int num){
+        if(num<=0){
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i =0 ; i<num; i++){
             sb.append(" ");
         }
         return sb.toString();
     }
 
     public void clear() {
-        information.setText("");
+        information.clear();
     }
 }

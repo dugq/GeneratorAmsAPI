@@ -23,7 +23,6 @@ import com.intellij.psi.PsiMethod;
 import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -63,7 +62,7 @@ public class YapiUploadApiAction extends AnAction {
         final YapiInterfaceService apiService = project.getService(YapiInterfaceService.class);
         apiList.forEach(api->{
             final String yapiUrl = apiService.upload(api);
-            APIPrintUtil.getAmsToolPanel(project).appendLine("YAPI接口地址", Color.GREEN).append(yapiUrl,Color.BLUE);
+            APIPrintUtil.getAmsToolPanel(project).appendWarnLine("YAPI接口地址").append(yapiUrl);
         });
     }
 

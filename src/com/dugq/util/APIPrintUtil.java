@@ -3,10 +3,10 @@ package com.dugq.util;
 import com.dugq.component.ams.AmsToolPanel;
 import com.dugq.component.tool.WindowFactoryComponent;
 import com.dugq.pojo.ApiBean;
+import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.content.Content;
 
-import java.awt.*;
 import java.util.Objects;
 
 /**
@@ -54,12 +54,12 @@ public class APIPrintUtil extends BasePrintUtil{
     public static void print(ApiBean param, Project project) {
         AmsToolPanel amsToolPanel = getAmsToolPanel(project);
         amsToolPanel.append("接口描述:   ")
-        .appendLine(param.getApiName(),Color.GREEN)
-        .append((Objects.equals(param.getApiRequestType().getType(),0)?"  Post   ":"  Get   "),Color.GREEN)
-        .appendLine(param.getApiURI(),Color.blue)
-        .appendLine("-------param--------",Color.GRAY)
+        .appendLine(param.getApiName())
+        .append((Objects.equals(param.getApiRequestType().getType(),0)?"  Post   ":"  Get   "),ConsoleViewContentType.USER_INPUT)
+        .appendLine(param.getApiURI(),ConsoleViewContentType.USER_INPUT)
+        .appendWarnLine("-------param--------")
         .append(param.getApiParamBean())
-        .appendLine("-------result--------",Color.GRAY)
+        .appendWarnLine("-------result--------")
         .append(param.getApiResultParam());
         show(project);
     }

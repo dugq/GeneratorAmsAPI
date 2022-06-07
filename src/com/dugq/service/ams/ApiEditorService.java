@@ -13,10 +13,10 @@ import com.dugq.pojo.ams.GroupVo;
 import com.dugq.pojo.ams.SimpleApiVo;
 import com.dugq.util.APIPrintUtil;
 import com.dugq.util.HttpClientUtil;
+import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -64,7 +64,7 @@ public class ApiEditorService {
                 APIPrintUtil.printErrorLine("上传AMS失败",project);
                 return;
             }
-            APIPrintUtil.getAmsToolPanel(project).appendLine("接口AMS地址", Color.GREEN).append(getAmsPageUrl(resultJson),Color.BLUE);
+            APIPrintUtil.getAmsToolPanel(project).appendLine("接口AMS地址", ConsoleViewContentType.SYSTEM_OUTPUT).append(getAmsPageUrl(resultJson),ConsoleViewContentType.USER_INPUT);
             APIPrintUtil.show(project);
         } catch (IOException e) {
             throw new ErrorException("ams连接不上");
@@ -86,7 +86,7 @@ public class ApiEditorService {
                 APIPrintUtil.printErrorLine("上传AMS失败",project);
                 return;
             }
-            APIPrintUtil.getAmsToolPanel(project).appendLine("接口AMS地址", Color.GREEN).append(getAmsPageUrl(resultJson),Color.BLUE);
+            APIPrintUtil.getAmsToolPanel(project).appendLine("接口AMS地址", ConsoleViewContentType.SYSTEM_OUTPUT).append(getAmsPageUrl(resultJson),ConsoleViewContentType.USER_INPUT);
             APIPrintUtil.show(project);
         } catch (IOException e) {
             throw new ErrorException(null,null,"链接ams错误");
