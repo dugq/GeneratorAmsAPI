@@ -30,7 +30,7 @@ public class WindowFactoryComponent implements ToolWindowFactory{
 //        ErrorTextToolPanel errorTextToolPanel = new ErrorTextToolPanel(project, toolWindow);
 //        contentManager.addContent(ContentFactory.SERVICE.getInstance().createContent(errorTextToolPanel, ERROR_PANEL_NAME, false),1);
         Content test_api = ContentFactory.SERVICE.getInstance().createContent(testApiPanel, TEST_PANEL_NAME, false);
-        contentManager.addContent(test_api,2);
+        contentManager.addContent(test_api,1);
     }
 
     @Override

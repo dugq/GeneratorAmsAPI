@@ -1,8 +1,8 @@
 package com.dugq.component.testapi;
 
-import com.dugq.component.tool.KjjMenu;
 import com.dugq.component.common.MyClickListener;
 import com.dugq.component.common.NotifyComponent;
+import com.dugq.component.tool.KjjMenu;
 import com.dugq.exception.ErrorException;
 import com.dugq.pojo.ApiBean;
 import com.dugq.pojo.ParamBean;
@@ -19,6 +19,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Splitter;
 import com.intellij.ui.ScrollPaneFactory;
+import com.intellij.ui.TextFieldWithHistory;
+import com.intellij.ui.TextFieldWithStoredHistory;
 import org.apache.commons.lang.StringUtils;
 
 import javax.swing.*;
@@ -36,7 +38,7 @@ public class MainPanel extends Splitter {
     private TestApiPanel parent;
     private Project project;
     private final JTextArea responseArea;
-    private JTextField hostFiled;
+    private TextFieldWithHistory hostFiled;
     private JTextField uriFiled;
     private JComboBox<String> requestMethod = new ComboBox(new String[]{"UNKNOWN","GET","POST"});
     private ParameterPanel parameterPanel;
@@ -141,17 +143,18 @@ public class MainPanel extends Splitter {
     }
 
     public void setHost(String host){
-        this.hostFiled.setText(host);
+        this.hostFiled.setTextAndAddToHistory(host);
     }
 
     public void setDefaultHost(){
         final String defaultPort = FileUtil.getDefaultPort(project);
         if (StringUtils.isBlank(this.hostFiled.getText())){
-            this.hostFiled.setText("http://127.0.0.1:"+defaultPort);
+            this.hostFiled.setTextAndAddToHistory("http://127.0.0.1:"+defaultPort);
         }
     }
 
     public String getHost(){
+        this.hostFiled.addCurrentTextToHistory();
         return this.hostFiled.getText();
     }
 
@@ -171,7 +174,10 @@ public class MainPanel extends Splitter {
     private Splitter buildHostPanel(){
         Splitter globalPanel= new Splitter(true, 0.05f);
         JPanel hostPanel = new JPanel();
-        this.hostFiled = new JTextField("",20);
+        this.hostFiled = new TextFieldWithStoredHistory("api-host");
+        Dimension dimension = new Dimension();
+        dimension.setSize(400,10);
+        this.hostFiled.setSize(dimension);
         hostPanel.add(new JLabel("HOST"),0);
         hostPanel.add(this.hostFiled);
         globalPanel.setFirstComponent(hostPanel);
