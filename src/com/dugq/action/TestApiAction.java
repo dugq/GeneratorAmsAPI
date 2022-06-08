@@ -42,13 +42,16 @@ public class TestApiAction  extends AnAction {
             } else {
                 ThreadStack.init(targetBean.getContainingMethod());
                 final ApiBean apiParamBean = ApiUtils.getApiParam(project, targetBean.getContainingMethod(), targetBean.getContainingClass());
-                TestApiUtil.show(project);
                 testApiPanel.testApi(apiParamBean);
             }
+            testApiPanel.clearResponse();
+            TestApiUtil.show(project);
         } catch (ErrorException e){
+            testApiPanel.createNewEmptyMainPanelAndSelect();
             TestApiUtil.printErrorLine(e.getFullMessage(),project);
             e.printStackTrace();
         }catch (Exception e){
+            testApiPanel.createNewEmptyMainPanelAndSelect();
             TestApiUtil.printException(e,project);
             e.printStackTrace();
         }finally {

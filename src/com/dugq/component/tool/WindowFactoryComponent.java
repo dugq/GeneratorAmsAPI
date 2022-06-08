@@ -14,7 +14,8 @@ import org.jetbrains.annotations.NotNull;
  * Created by dugq on 2021/3/22.
  */
 public class WindowFactoryComponent implements ToolWindowFactory{
-    public static final String id = "dugq";
+    //plugin > toolWindow > id
+    public static final String id = "KJJ";
     public static final String API_PANEL_NAME = "API Print";
     public static final String TEST_PANEL_NAME = "TEST_API";
 //    public static final String ERROR_PANEL_NAME = "ERROR Print";
@@ -35,7 +36,6 @@ public class WindowFactoryComponent implements ToolWindowFactory{
 
     @Override
     public void init(ToolWindow toolWindow) {
-
     }
 
     @Override

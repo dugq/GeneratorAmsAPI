@@ -1,12 +1,10 @@
 package com.dugq.util;
 
-import com.dugq.component.tool.WindowFactoryComponent;
 import com.dugq.component.testapi.TestApiPanel;
+import com.dugq.component.tool.WindowFactoryComponent;
 import com.dugq.exception.ErrorException;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.content.Content;
-
-import java.util.Objects;
 
 /**
  * Created by dugq on 2021/4/7.
@@ -14,17 +12,16 @@ import java.util.Objects;
 public class TestApiUtil extends BasePrintUtil{
 
     public static TestApiPanel getTestApiPanel(Project project){
-        Content ams =getContentManager(project).findContent(WindowFactoryComponent.TEST_PANEL_NAME);
+        Content ams = getKjjWindowContentManager(project).findContent(WindowFactoryComponent.TEST_PANEL_NAME);
         return (TestApiPanel)ams.getComponent();
     }
 
     public static void show(Project project){
-        final Content showContent = getContentManager(project).getSelectedContent();
-        final Content content = getContentManager(project).findContent(WindowFactoryComponent.TEST_PANEL_NAME);
-        if (!Objects.equals(showContent,content)){
-            getKjjToolWindow(project).show(()->
-                    getContentManager(project).setSelectedContent(content));
-        }
+        final TestApiPanel testApiPanel = getTestApiPanel(project);
+        testApiPanel.showApi();
+        final Content content = getKjjWindowContentManager(project).findContent(WindowFactoryComponent.TEST_PANEL_NAME);
+        getKjjWindowContentManager(project).setSelectedContent(content);
+        showMyWindow(project);
     }
 
     public static void printException(Exception e, Project project) {

@@ -6,6 +6,7 @@ import com.dugq.pojo.ApiBean;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.content.Content;
+import com.intellij.ui.content.ContentManager;
 
 import java.util.Objects;
 
@@ -17,10 +18,7 @@ public class APIPrintUtil extends BasePrintUtil{
     public static void printErrorLine(String message, Project project) {
         AmsToolPanel errorTextToolPanel = getAmsToolPanel(project);
         errorTextToolPanel.appendErrorLine(message);
-
-        getKjjToolWindow(project).show(() ->
-                getContentManager(project).setSelectedContent(
-                        getContentManager(project).findContent(WindowFactoryComponent.API_PANEL_NAME)));
+        show(project);
     }
 
     public static void printException(Exception e, Project project) {
@@ -29,26 +27,25 @@ public class APIPrintUtil extends BasePrintUtil{
         for (StackTraceElement stackTraceElement : stackTrace) {
             printErrorLine("\tat   "+stackTraceElement.getClassName()+"#"+stackTraceElement.getMethodName()+"("+stackTraceElement.getFileName()+":"+stackTraceElement.getLineNumber()+")",project);
         }
+        show(project);
     }
 
     public static void printWarnLine(String message, Project project) {
         AmsToolPanel errorTextToolPanel = getAmsToolPanel(project);
         errorTextToolPanel.appendWarnLine(message);
-
-        getKjjToolWindow(project).show(() ->
-                getContentManager(project).setSelectedContent(
-                        getContentManager(project).findContent(WindowFactoryComponent.API_PANEL_NAME)));
+        show(project);
     }
 
     public static AmsToolPanel getAmsToolPanel(Project project){
-        Content ams = getContentManager(project).findContent(WindowFactoryComponent.API_PANEL_NAME);
+        Content ams = getKjjWindowContentManager(project).findContent(WindowFactoryComponent.API_PANEL_NAME);
         return (AmsToolPanel)ams.getComponent();
     }
 
     public static void show(Project project){
-        getKjjToolWindow(project).show(()->
-                getContentManager(project).setSelectedContent(
-                        getContentManager(project).findContent(WindowFactoryComponent.API_PANEL_NAME)));
+        final ContentManager contentManager = getKjjWindowContentManager(project);
+        final Content content = contentManager.findContent(WindowFactoryComponent.API_PANEL_NAME);
+        contentManager.setSelectedContent(content);
+        showMyWindow(project);
     }
 
     public static void print(ApiBean param, Project project) {

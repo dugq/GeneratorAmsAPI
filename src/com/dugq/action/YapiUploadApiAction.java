@@ -16,14 +16,11 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
-import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -35,55 +32,41 @@ public class YapiUploadApiAction extends AnAction {
     @Override
     public void actionPerformed(AnActionEvent event) {
         Project project = event.getProject();
+        Editor editor = event.getData(PlatformDataKeys.EDITOR);
+        if(Objects.isNull(editor)){
+            return;
+        }
+        List<TargetBean> targetBeanList = TargetUtils.getTargetBean2(editor, project);
+        for (TargetBean targetBean : targetBeanList) {
+            updateOneApi(project, targetBean);
+        }
+    }
+
+    public void updateOneApi(Project project, TargetBean targetBean) {
         try {
-            APIPrintUtil.clear(project);
-            Editor editor = event.getData(PlatformDataKeys.EDITOR);
-            if(Objects.isNull(editor)){
-                return;
-            }
-            TargetBean targetBean = TargetUtils.getTargetBean(editor, project);
-            List<ApiBean> apiList = getApiUploadBeans(project, targetBean);
-            if (CollectionUtils.isNotEmpty(apiList)){
-                doUpload(apiList,project);
-            }
-            Messages.showInfoMessage(project,"上传成功","yapi");
+            ApiBean apiList = getApiUploadBeans(project, targetBean);
+            doUpload(apiList, project);
+            APIPrintUtil.show(project);
         }catch (StopException e){
             //skip
         }catch (ErrorException e){
             e.printStackTrace();
-            APIPrintUtil.printErrorLine(e.getFullMessage(),project);
+            APIPrintUtil.printErrorLine(e.getFullMessage(), project);
         }catch (Exception e){
-            APIPrintUtil.printErrorLine(e.toString(),project);
+            APIPrintUtil.printErrorLine(e.toString(), project);
             e.printStackTrace();
         }
     }
 
-    private void doUpload(List<ApiBean> apiList,Project project) {
+    private void doUpload(ApiBean api,Project project) {
         final YapiInterfaceService apiService = project.getService(YapiInterfaceService.class);
-        apiList.forEach(api->{
-            final String yapiUrl = apiService.upload(api);
-            APIPrintUtil.getAmsToolPanel(project).appendWarnLine("YAPI接口地址").append(yapiUrl);
-        });
+        final String yapiUrl = apiService.upload(api);
+        APIPrintUtil.getAmsToolPanel(project).appendWarnLine(api.getApiName()).appendLine(yapiUrl);
     }
 
     @NotNull
-    private List<ApiBean> getApiUploadBeans(Project project, TargetBean targetBean) {
-        List<ApiBean> apiList = new ArrayList<>();
-        if(Objects.isNull(targetBean.getContainingMethod())){
-            PsiMethod[] allMethods = targetBean.getContainingClass().getMethods();
-            for (PsiMethod method : allMethods) {
-                final ApiBean apiUploadBean = getAndUploadApi(project,targetBean.getContainingClass() , method);
-                if (Objects.nonNull(apiUploadBean)){
-                    apiList.add(apiUploadBean);
-                }
-            }
-        }else{
-            final ApiBean apiUploadBean = getAndUploadApi(project, targetBean.getContainingClass(), targetBean.getContainingMethod());
-            if (Objects.nonNull(apiUploadBean)){
-                apiList.add(apiUploadBean);
-            }
-        }
-        return apiList;
+    private ApiBean getApiUploadBeans(Project project, TargetBean targetBean) {
+        return getAndUploadApi(project, targetBean.getContainingClass(), targetBean.getContainingMethod());
     }
 
     private ApiBean getAndUploadApi(Project project, PsiClass containingClass, PsiMethod method) {

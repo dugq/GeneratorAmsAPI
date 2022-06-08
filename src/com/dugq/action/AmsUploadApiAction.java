@@ -46,17 +46,13 @@ public class AmsUploadApiAction extends AnAction {
     @Override
     public void actionPerformed(AnActionEvent event) {
         Project project = event.getProject();
-        APIPrintUtil.clear(project);
         Editor editor = event.getData(PlatformDataKeys.EDITOR);
         if(Objects.isNull(editor)){
             return;
         }
-
         LoginService.login(project);
         LoginService.checkLogin(project);
-
         List<GroupVo> groupVos = ApiEditorService.allGroup();
-
         TargetBean targetBean = TargetUtils.getTargetBean(editor, project);
 
         if(Objects.isNull(targetBean.getContainingMethod())){

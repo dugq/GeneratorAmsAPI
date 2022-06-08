@@ -15,6 +15,9 @@ import com.dugq.util.FileUtil;
 import com.dugq.util.JSONPrintUtils;
 import com.dugq.util.ParamBeanUtils;
 import com.dugq.util.TestApiUtil;
+import com.intellij.execution.filters.TextConsoleBuilderFactory;
+import com.intellij.execution.impl.ConsoleViewImpl;
+import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Splitter;
@@ -37,7 +40,7 @@ public class MainPanel extends Splitter {
 
     private TestApiPanel parent;
     private Project project;
-    private final JTextArea responseArea;
+    private final ConsoleViewImpl responseArea;
     private TextFieldWithHistory hostFiled;
     private JTextField uriFiled;
     private JComboBox<String> requestMethod = new ComboBox(new String[]{"UNKNOWN","GET","POST"});
@@ -49,9 +52,8 @@ public class MainPanel extends Splitter {
         super(true, 0.01f,0.01f,0.02f);
         this.project = project;
         this.parent = parent;
-        this.responseArea = new JTextArea();
+        this.responseArea = (ConsoleViewImpl) TextConsoleBuilderFactory.getInstance().createBuilder(project).getConsole();
         this.responseArea.addMouseListener(new KjjMenu(responseArea));
-        this.responseArea.setEditable(false);
         this.parameterPanel = new ParameterPanel(project);
         this.setFirstComponent(buildUrlPanel(project));
         this.setSecondComponent(buildParamPanel());
@@ -189,7 +191,7 @@ public class MainPanel extends Splitter {
         Splitter paramResult = new Splitter(false,0.5f);
         final JScrollPane scrollPane = ScrollPaneFactory.createScrollPane(this.parameterPanel);
         paramResult.setFirstComponent(scrollPane);
-        paramResult.setSecondComponent(ScrollPaneFactory.createScrollPane(this.responseArea));
+        paramResult.setSecondComponent(ScrollPaneFactory.createScrollPane(this.responseArea.getComponent()));
         return paramResult;
     }
 
@@ -260,15 +262,15 @@ public class MainPanel extends Splitter {
     }
 
     public void printError(String errorMsg) {
-        this.responseArea.setText(errorMsg);
+        this.responseArea.print(errorMsg, ConsoleViewContentType.ERROR_OUTPUT);
     }
 
     public void clearResponse() {
-        this.responseArea.setText("");
+        this.responseArea.clear();
     }
 
     public void resetContent() {
-        this.responseArea.setText("");
+        clearResponse();
         this.setUri("");
         this.parameterPanel.resetContent();
     }

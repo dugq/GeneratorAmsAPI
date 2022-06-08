@@ -6,7 +6,6 @@ import com.dugq.pojo.ApiBean;
 import com.dugq.pojo.TestApiBean;
 import com.dugq.service.config.impl.GlobalHeadersConfigService;
 import com.dugq.service.config.impl.GlobalParamConfigService;
-import com.dugq.util.TestApiUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
@@ -39,6 +38,8 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
     //uri - api
     private final Map<String,TabInfo> apiMap = new HashMap<>();
 
+    public static final String EMPTY_PANEL_FLAG = "empty";
+
     public TestApiPanel(Project project, ToolWindow t) {
         super(true, true);
         this.project = project;
@@ -59,7 +60,7 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (e.getButton()==1){
-                    testApiPanel.setContent(headerPanel);
+                    testApiPanel.showHeaders();
                 }
             }
         });
@@ -69,7 +70,7 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (e.getButton()==1){
-                    testApiPanel.setContent(globalParamPanel);
+                    testApiPanel.showGlobalParam();
                 }
             }
         });
@@ -79,7 +80,7 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (e.getButton()==1){
-                    testApiPanel.setContent(apiTabbedPane);
+                    testApiPanel.showApi();
                 }
             }
         });
@@ -89,7 +90,7 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (e.getButton()==1){
-                    testApiPanel.setContent(apiRepositoryPanel);
+                    testApiPanel.showRepository();
                     apiRepositoryPanel.init();
                 }
             }
@@ -102,33 +103,60 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
         return toolbarPanel;
     }
 
+    public void showHeaders() {
+        setContent(headerPanel);
+    }
+
+    public void showApi() {
+        setContent(apiTabbedPane);
+    }
+
+    public void showGlobalParam() {
+        setContent(globalParamPanel);
+    }
+
+    public void showRepository() {
+        setContent(apiRepositoryPanel);
+    }
+
     /**
      * 优先从也存在的选项卡中显示出来
      * @param apiBean
      */
     public void testApi(ApiBean apiBean){
-        if (apiMap.containsKey(apiBean.getApiURI())){
-            final TabInfo mainPanel = apiMap.get(apiBean.getApiURI());
+        final String apiURI = apiBean.getApiURI();
+        if (apiMap.containsKey(apiURI)){
+            final TabInfo mainPanel = apiMap.get(apiURI);
             apiTabbedPane.select(mainPanel,true);
             return;
         }
+        MainPanel mainContent = createNewMainPanelAndSelect(apiURI, apiBean.getApiName());
+        mainContent.showTestApi(apiBean);
+        setContent(apiTabbedPane);
+        this.updateUI();
+    }
+
+    public MainPanel createNewMainPanelAndSelect(String apiURI, String apiName) {
+        final TabInfo tabInfo = apiMap.remove(EMPTY_PANEL_FLAG);
+        if (Objects.nonNull(tabInfo)){
+            tabInfo.setText(apiName);
+            apiMap.put(apiURI,tabInfo);
+            return (MainPanel)tabInfo.getComponent();
+        }
         final MainPanel mainContent = new MainPanel(project, this);
         final TabInfo info = new TabInfo(mainContent);
-        info.setText(apiBean.getApiName());
-        apiTabbedPane.addClosableTab(info,true);
-        apiTabbedPane.addListener(new TabsListener(){
+        info.setText(apiName);
+        apiTabbedPane.addClosableTab(info, true);
+        apiTabbedPane.addListener(new TabsListener() {
             @Override
             public void tabRemoved(@NotNull TabInfo tabToRemove) {
-                final MainPanel component = (MainPanel)tabToRemove.getComponent();
+                final MainPanel component = (MainPanel) tabToRemove.getComponent();
                 final String uri = component.getUri();
                 apiMap.remove(uri);
             }
         });
-        apiMap.put(apiBean.getApiURI(),info);
-        mainContent.showTestApi(apiBean);
-        setContent(apiTabbedPane);
-        this.updateUI();
-        TestApiUtil.show(project);
+        apiMap.put(apiURI, info);
+        return mainContent;
     }
 
     public void testApi(TestApiBean apiBean){
@@ -137,23 +165,10 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
             apiTabbedPane.select(mainPanel,true);
             return;
         }
-        final MainPanel mainContent = new MainPanel(project, this);
-        final TabInfo info = new TabInfo(mainContent);
-        info.setText(apiBean.getName());
-        apiTabbedPane.addClosableTab(info,true);
-        apiTabbedPane.addListener(new TabsListener(){
-            @Override
-            public void tabRemoved(@NotNull TabInfo tabToRemove) {
-                final MainPanel component = (MainPanel)tabToRemove.getComponent();
-                final String uri = component.getUri();
-                apiMap.remove(uri);
-            }
-        });
-        apiMap.put(apiBean.getUri(),info);
+        MainPanel mainContent = createNewMainPanelAndSelect(apiBean.getUri(), apiBean.getName());
         mainContent.showTestApi(apiBean);
         setContent(apiTabbedPane);
         this.updateUI();
-        TestApiUtil.show(project);
     }
 
 
@@ -162,18 +177,27 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
     }
 
     public void clearResponse(){
-        final MainPanel mainContent = getMainContent();
+        final MainPanel mainContent = getOrCreateSelectedMainContent();
         if(Objects.nonNull(mainContent)){
             mainContent.clearResponse();
         }
     }
 
-    public MainPanel getMainContent(){
-        final TabInfo selectedInfo = apiTabbedPane.getSelectedInfo();
-        if (Objects.nonNull(selectedInfo)){
-            return (MainPanel)selectedInfo.getComponent();
+    public void createNewEmptyMainPanelAndSelect(){
+        final TabInfo tabInfo = apiMap.get(EMPTY_PANEL_FLAG);
+        if (Objects.isNull(tabInfo)){
+            createNewMainPanelAndSelect(EMPTY_PANEL_FLAG, EMPTY_PANEL_FLAG);
+        }else{
+            apiTabbedPane.select(tabInfo,true);
         }
-        return new MainPanel(project,this);
+    }
+
+    public MainPanel getOrCreateSelectedMainContent(){
+        final TabInfo selectedInfo = apiTabbedPane.getSelectedInfo();
+        if (Objects.isNull(selectedInfo)){
+            return createNewMainPanelAndSelect(EMPTY_PANEL_FLAG,EMPTY_PANEL_FLAG);
+        }
+        return (MainPanel) selectedInfo.getComponent();
     }
 
     public Map<String, String> getHeaders() {
@@ -185,10 +209,7 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
     }
 
     public void printError(String errorMsg) {
-        MainPanel mainContent = getMainContent();
-        if (Objects.isNull(mainContent)){
-            mainContent = new MainPanel(project,this);
-        }
+        MainPanel mainContent = getOrCreateSelectedMainContent();
         mainContent.printError(errorMsg);
     }
 

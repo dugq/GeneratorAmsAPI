@@ -25,14 +25,20 @@ import java.util.stream.Collectors;
  * @date 2021/8/12 2:46 下午
  */
 public class CenterSelectDialogWithSearch<T> extends CenterSelectDialog<T> {
+    private String defaultSelectedKey;
 
     public CenterSelectDialogWithSearch(String title, List<CenterSelectBean<T>> currentGroupList){
         super(title,currentGroupList);
     }
 
-    public static <K> CenterSelectDialogWithSearch<K> getSearchInstance(String title, List<K> groupList, Function<K,String> key, Function<K,List<K>> children){
+    public CenterSelectDialogWithSearch(String title, List<CenterSelectBean<T>> currentGroupList,String defaultSelectedKey){
+        super(title,currentGroupList);
+        this.defaultSelectedKey = defaultSelectedKey;
+    }
+
+    public static <K> CenterSelectDialogWithSearch<K> getSearchInstance(String title, List<K> groupList, Function<K, String> key, Function<K, List<K>> children, String selectedKey){
         final List<CenterSelectBean<K>> collect = getCollect(groupList, key, children);
-        return new CenterSelectDialogWithSearch<>(title, collect);
+        return new CenterSelectDialogWithSearch<>(title, collect,selectedKey);
     }
 
 
@@ -81,6 +87,9 @@ public class CenterSelectDialogWithSearch<T> extends CenterSelectDialog<T> {
         if (CollectionUtils.isNotEmpty(currentGroupList)){
             final Map<String, CenterSelectBean<T>> beans = currentGroupList.stream().collect(Collectors.toMap(CenterSelectBean::getName, Function.identity()));
             box = new ComboBox(new MyCollectionComboBoxModel(beans));
+            if (StringUtils.isNotBlank(defaultSelectedKey)){
+                box.setSelectedItem(defaultSelectedKey);
+            }
             jPanel.add(box,BorderLayout.CENTER);
         }
         if (Objects.nonNull(jButton)){

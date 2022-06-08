@@ -35,7 +35,7 @@ public final class TestApiService {
 
     public void sendCurrentRequest(TestApiBean testApiBean, TestApiPanel testApiPanel) throws IOException {
         testApiPanel.clearResponse();
-        final MainPanel mainPanel = testApiPanel.getMainContent();
+        final MainPanel mainPanel = testApiPanel.getOrCreateSelectedMainContent();
         String host = mainPanel.getHost();
         if (StringUtils.isBlank(host)){
             throw new ErrorException("请填写host");

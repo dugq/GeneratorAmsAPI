@@ -7,10 +7,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.intellij.execution.impl.ConsoleViewImpl;
+import com.intellij.execution.ui.ConsoleViewContentType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 
-import javax.swing.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -24,7 +25,7 @@ public class JSONPrintUtils {
     static {
     }
 
-    public static void printCustomJson(String jsonObject, JTextArea textArea){
+    public static void printCustomJson(String jsonObject, ConsoleViewImpl textArea){
         if (StringUtils.isBlank(jsonObject)){
             appendLine(textArea,"NO RESPONSE");
         }else{
@@ -47,7 +48,7 @@ public class JSONPrintUtils {
         }
     }
 
-    public static void printCustomJson(JSONObject jsonObject, JTextArea textArea){
+    public static void printCustomJson(JSONObject jsonObject, ConsoleViewImpl textArea){
         int blankNum=0;
         String jsonString = JSON.toJSONString(jsonObject);
         //标记 key：每一行json的key默认为空字符串，value：每行json的value默认为空字符串， type：标记当前解析字符是属于key还是value。默认是key，在遇到"："字符后变更为value，当遇到"；"后复位为key
@@ -66,7 +67,7 @@ public class JSONPrintUtils {
                 if (nextChar=='{' || nextChar=='['){ //value为JSON时，打印本行，开始下一行。
                     printBlankTable(blankNum,textArea);
                     String thisKey = key.toString();
-                    textArea.append(getKey(thisKey,lastLevel));
+                    append(textArea, getKey(thisKey,lastLevel));
                     if (nextChar=='['){
                         appendLine(textArea," : [");
                         blankNum++;
@@ -121,9 +122,9 @@ public class JSONPrintUtils {
             }else if(c==']'){
                blankNum--;
                printBlankTable(blankNum,textArea);
-               textArea.append("]");
+               append(textArea, "]");
                if (index+1 <jsonString.length() && jsonString.charAt(index+1)==','){
-                   textArea.append(",");
+                   append(textArea, ",");
                    index++;
                }
                appendLine(textArea,"");
@@ -150,44 +151,48 @@ public class JSONPrintUtils {
 //        return StringUtils.join(lastKeyList,">")+">"+thisKey;
     }
 
-    private static void printKeyValueLine(int blankNum, StringBuilder key, StringBuilder value, char c, List<String> lastLevel, JTextArea textArea,boolean last) {
+    private static void printKeyValueLine(int blankNum, StringBuilder key, StringBuilder value, char c, List<String> lastLevel, ConsoleViewImpl textArea,boolean last) {
         if (Objects.isNull(key) || key.length()<1){
             return;
         }
         printBlankTable(blankNum, textArea);
-        textArea.append(getKey(key.toString(),lastLevel));
-        textArea.append(" : ");
+        append(textArea,getKey(key.toString(),lastLevel));
+        append(textArea, " : ");
         //打印value时，用$&分割类型和描述，把描述打印在','之后
         String msg = value.toString();
         if (msg.contains("$&")){
             String[] split = msg.split("\\$&");
-            textArea.append(split[0]);
-            textArea.append("; ");
-            textArea.append(split[1]);
+            append(textArea, split[0]);
+            append(textArea, "; ");
+            append(textArea, split[1]);
         }else{
-            textArea.append(msg);
+            append(textArea, msg);
         }
         if (!last){
-            textArea.append(",");
+            append(textArea, ",");
         }
         appendLine(textArea,"");
     }
 
-    private static void printBlankTable(int num, JTextArea textArea){
+    private static void append(ConsoleViewImpl textArea, String s) {
+        textArea.print(s,ConsoleViewContentType.NORMAL_OUTPUT);
+    }
+
+    private static void printBlankTable(int num, ConsoleViewImpl textArea){
         for (int i =0 ; i<num; i++){
-            textArea.append("  ");
+            textArea.print("  ", ConsoleViewContentType.NORMAL_OUTPUT);
         }
     }
 
-    private static void appendLine(JTextArea textArea,String msg){
+    private static void appendLine(ConsoleViewImpl textArea,String msg){
         if (StringUtils.isNotBlank(msg)){
-            textArea.append(msg);
+            textArea.print(msg, ConsoleViewContentType.NORMAL_OUTPUT);
         }
-        textArea.append("\n");
+        textArea.print("\n", ConsoleViewContentType.NORMAL_OUTPUT);
     }
 
-    private static void appendLine(JTextArea textArea,Character msg){
-        textArea.append(msg.toString());
-        textArea.append("\n");
+    private static void appendLine(ConsoleViewImpl textArea,Character msg){
+        textArea.print(msg.toString(), ConsoleViewContentType.NORMAL_OUTPUT);
+        textArea.print("\n", ConsoleViewContentType.NORMAL_OUTPUT);
     }
 }

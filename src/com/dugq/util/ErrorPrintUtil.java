@@ -8,10 +8,11 @@ import com.intellij.ui.content.Content;
 /**
  * Created by dugq on 2021/4/6.
  */
+@Deprecated
 public class ErrorPrintUtil extends BasePrintUtil{
 
     public static ErrorTextToolPanel getErrorTextToolPanel(Project project){
-        Content ams = getContentManager(project).findContent("ERROR Print");
+        Content ams = getKjjWindowContentManager(project).findContent("ERROR Print");
         return (ErrorTextToolPanel)ams.getComponent();
     }
 
@@ -21,8 +22,8 @@ public class ErrorPrintUtil extends BasePrintUtil{
         errorTextToolPanel.appendErrorLine(message);
 
         getKjjToolWindow(project).show(() ->
-                        getContentManager(project).setSelectedContent(
-                                        getContentManager(project).findContent("ERROR Print")));
+                        getKjjWindowContentManager(project).setSelectedContent(
+                                        getKjjWindowContentManager(project).findContent("ERROR Print")));
     }
 
     public static void printWarnLine(String message, Project project) {
@@ -30,8 +31,8 @@ public class ErrorPrintUtil extends BasePrintUtil{
         errorTextToolPanel.appendWarnLine(message);
 
         getKjjToolWindow(project).show(() ->
-                getContentManager(project).setSelectedContent(
-                        getContentManager(project).findContent("ERROR Print")));
+                getKjjWindowContentManager(project).setSelectedContent(
+                        getKjjWindowContentManager(project).findContent("ERROR Print")));
     }
 
     public static void clear(Project project){

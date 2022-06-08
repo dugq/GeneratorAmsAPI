@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -49,6 +50,8 @@ public class YapiInterfaceService implements YapiBaseService{
     private final YapiProjectService yapiProjectService;
     private final YapiConfigService configService;
     private final YapiMenuService yapiMenuService;
+
+    private Long lastSelectedMenuId;
 
     public YapiInterfaceService(Project project) {
         this.project = project;
@@ -312,18 +315,21 @@ public class YapiInterfaceService implements YapiBaseService{
     @NotNull
     private Long getMenuId(long projectId) {
         final List<YapiMenuBean> menuList = yapiMenuService.getMenuList(projectId);
-        final CenterSelectDialogWithSearch<YapiMenuBean> menuDialog = CenterSelectDialogWithSearch.getSearchInstance("请选择接口分类",menuList,YapiMenuBean::getName,null);
-        final MyClickButton createMenuButton = new MyClickButton("新建分类", event -> {
-            menuDialog.close(-1);
-        }, 100);
+        final Optional<YapiMenuBean> lastSelected = menuList.stream().filter(menu -> Objects.equals(menu.getId(), lastSelectedMenuId)).findFirst();
+        final CenterSelectDialogWithSearch<YapiMenuBean> menuDialog = CenterSelectDialogWithSearch.getSearchInstance("请选择接口分类",menuList,YapiMenuBean::getName,null, lastSelected.map(YapiMenuBean::getName).orElse(null));
+        final MyClickButton createMenuButton = new MyClickButton("新建分类", event -> menuDialog.close(-1), 100);
         menuDialog.setCustomButton(createMenuButton);
         final int existCode = menuDialog.showAndGetExistCode();
         if (existCode!=CenterSelectDialog.OK_EXIT_CODE){
             if (existCode==-1){
-                return yapiMenuService.createMenu(projectId);
+                final long newMenuId = yapiMenuService.createMenu(projectId);
+                lastSelectedMenuId = newMenuId;
+                return newMenuId;
             }
             throw new StopException();
         }
-        return menuDialog.getLastSelect().getId();
+        final long id = menuDialog.getLastSelect().getId();
+        lastSelectedMenuId = id;
+        return id;
     }
 }

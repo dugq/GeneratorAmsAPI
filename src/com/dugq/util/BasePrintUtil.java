@@ -1,5 +1,6 @@
 package com.dugq.util;
 
+import com.dugq.component.tool.WindowFactoryComponent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -11,11 +12,16 @@ import com.intellij.ui.content.ContentManager;
 public abstract class BasePrintUtil {
 
     protected static ToolWindow getKjjToolWindow(Project project) {
-        return ToolWindowManager.getInstance(project).getToolWindow("KJJ");
+        return ToolWindowManager.getInstance(project).getToolWindow(WindowFactoryComponent.id);
     }
 
-    protected static ContentManager getContentManager(Project project) {
+    protected static ContentManager getKjjWindowContentManager(Project project) {
         return getKjjToolWindow(project).getContentManager();
+    }
+
+    protected static void showMyWindow(Project project) {
+        final ToolWindow kjjToolWindow = getKjjToolWindow(project);
+        kjjToolWindow.show();
     }
 
 }
