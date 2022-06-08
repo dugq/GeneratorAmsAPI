@@ -10,8 +10,10 @@ import com.dugq.http.HttpExecuteService;
 import com.dugq.pojo.FeignKeyValueBean;
 import com.dugq.pojo.KeyValueBean;
 import com.dugq.pojo.TestApiBean;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -33,7 +35,7 @@ public final class TestApiService {
         return project.getService(TestApiService.class);
     }
 
-    public void sendCurrentRequest(TestApiBean testApiBean, TestApiPanel testApiPanel) throws IOException {
+    public void sendCurrentRequest(TestApiBean testApiBean, TestApiPanel testApiPanel){
         testApiPanel.clearResponse();
         final MainPanel mainPanel = testApiPanel.getOrCreateSelectedMainContent();
         String host = mainPanel.getHost();
@@ -47,20 +49,34 @@ public final class TestApiService {
         String url = host + (uri.startsWith("/")?uri:("/"+uri));
         String requestMethod = testApiBean.getRequestType().getDesc().toUpperCase();
         Map<String, String> headerMap = testApiPanel.getHeaders();
+        //开启线程进行RPC，当前线程属于UI线程，在线程执行中，页面处于暂停状态，如果RPC卡死，那么UI也会卡死
+        new Thread(()->{
+            try {
+                final  ResponseBean responseBean = doSendRequest(testApiBean, testApiPanel, url, requestMethod, headerMap);
+                if (!responseBean.isSuccess()){
+                    throw new ErrorException("response status = {} "+responseBean.getStatus());
+                }
+                //重新交给UI thread 才可以进行UI操作，否则，将导致UI component失去控制
+                ApplicationManager.getApplication().invokeLater(()-> mainPanel.clearAndPrintResponse(responseBean.getResponseBody()));
+            } catch (Exception e) {
+                ApplicationManager.getApplication().invokeLater(()-> mainPanel.printError(e.getMessage()));
+            }
+        }).start();
+    }
+
+    @NotNull
+    public ResponseBean doSendRequest(TestApiBean testApiBean, TestApiPanel testApiPanel, String url, String requestMethod, Map<String, String> headerMap) throws IOException {
         ResponseBean responseBean;
         if (StringUtils.equals(requestMethod,"GET")){
             final Map<String, String> paramMap = dealRequestParamMap(testApiBean, testApiPanel);
             responseBean = HttpExecuteService.sendGet(url, headerMap, paramMap);
         }else if (StringUtils.equals(requestMethod,"POST")){
-            String requestBody = dealRequestBody(testApiBean.getApiParamBean().getRequestBody(),testApiPanel);
-            responseBean = HttpExecuteService.doPost(url,headerMap,requestBody);
+            String requestBody = dealRequestBody(testApiBean.getApiParamBean().getRequestBody(), testApiPanel);
+            responseBean = HttpExecuteService.doPost(url, headerMap,requestBody);
         }else{
             throw new ErrorException( "HTTP Method is not selected!!!");
         }
-        if (!responseBean.isSuccess()){
-            throw new ErrorException("response status = {} "+responseBean.getStatus());
-        }
-        mainPanel.clearAndPrintResponse(responseBean.getResponseBody());
+        return responseBean;
     }
 
     private Map<String,String> dealRequestParamMap(TestApiBean requestParams, TestApiPanel testApiPanel) {

@@ -17,7 +17,6 @@ import com.dugq.util.TestApiUtil;
 import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.impl.ConsoleViewImpl;
 import com.intellij.execution.ui.ConsoleViewContentType;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Splitter;
@@ -217,19 +216,8 @@ public class MainPanel extends JBSplitter {
                         NotifyComponent.error("请先选择API！",project);
                         return;
                     }
-                    ApplicationManager.getApplication().executeOnPooledThread(()->{
-                        try{
-                            TestApiService service = project.getService(TestApiService.class);
-                            service.sendCurrentRequest(getTestApi(),parent);
-                        }catch (Exception ex){
-                            try{
-                                TestApiUtil.printException(ex,project);
-                                ex.printStackTrace();
-                            }catch (Exception ex2){
-
-                            }
-                        }
-                    });
+                    TestApiService service = project.getService(TestApiService.class);
+                    service.sendCurrentRequest(getTestApi(), parent);
                 }
             }
         });
