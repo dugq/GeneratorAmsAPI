@@ -1,8 +1,8 @@
 <idea-plugin>
   <id>com.dugq.dugq</id>
   <name>generatoramsapi</name>
-  <version>5.1.1</version>
-  <vendor email="dgqngu@163.com" url="http://www.dui88.com">兑吧</vendor>
+  <version>5.2.1</version>
+  <vendor email="dgqngu@163.com" url="http://www.dui88.com">dugq</vendor>
 
   <description>
     <![CDATA[
@@ -15,7 +15,8 @@
 
   <change-notes>
     <![CDATA[
-    1、新增上传到YAPI接口管理平台功能
+    1、全新的用户体验
+    2、多接口同时测试
       ]]>
   </change-notes>
 
