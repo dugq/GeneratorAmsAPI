@@ -1,6 +1,5 @@
 package com.dugq.component.ams;
 
-import com.dugq.component.tool.KjjMenu;
 import com.dugq.pojo.ParamBean;
 import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.impl.ConsoleViewImpl;
@@ -31,7 +30,6 @@ public class AmsToolPanel extends SimpleToolWindowPanel {
         information = (ConsoleViewImpl)TextConsoleBuilderFactory.getInstance().createBuilder(project).getConsole();
         final JComponent component = information.getComponent();
         setContent(component);
-        information.addMouseListener(new KjjMenu(information));
     }
 
     public AmsToolPanel append(String msg){

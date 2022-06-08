@@ -2,7 +2,6 @@ package com.dugq.component.testapi;
 
 import com.dugq.component.common.MyClickListener;
 import com.dugq.component.common.NotifyComponent;
-import com.dugq.component.tool.KjjMenu;
 import com.dugq.exception.ErrorException;
 import com.dugq.pojo.ApiBean;
 import com.dugq.pojo.ParamBean;
@@ -18,9 +17,11 @@ import com.dugq.util.TestApiUtil;
 import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.impl.ConsoleViewImpl;
 import com.intellij.execution.ui.ConsoleViewContentType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Splitter;
+import com.intellij.ui.JBSplitter;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.TextFieldWithHistory;
 import com.intellij.ui.TextFieldWithStoredHistory;
@@ -36,7 +37,7 @@ import java.util.Objects;
  * @author dugq
  * @date 2021/7/8 11:22 上午
  */
-public class MainPanel extends Splitter {
+public class MainPanel extends JBSplitter {
 
     private TestApiPanel parent;
     private Project project;
@@ -53,7 +54,6 @@ public class MainPanel extends Splitter {
         this.project = project;
         this.parent = parent;
         this.responseArea = (ConsoleViewImpl) TextConsoleBuilderFactory.getInstance().createBuilder(project).getConsole();
-        this.responseArea.addMouseListener(new KjjMenu(responseArea));
         this.parameterPanel = new ParameterPanel(project);
         this.setFirstComponent(buildUrlPanel(project));
         this.setSecondComponent(buildParamPanel());
@@ -142,7 +142,6 @@ public class MainPanel extends Splitter {
     public void clearAndPrintResponse(String responseBody) {
         clearResponse();
         JSONPrintUtils.printCustomJson(responseBody, responseArea);
-        this.updateUI();
     }
 
     public void setHost(String host){
@@ -189,10 +188,10 @@ public class MainPanel extends Splitter {
 
 
     private Splitter buildParamPanel() {
-        Splitter paramResult = new Splitter(false,0.5f);
+        Splitter paramResult = new JBSplitter(false,0.5f);
         final JScrollPane scrollPane = ScrollPaneFactory.createScrollPane(this.parameterPanel);
         paramResult.setFirstComponent(scrollPane);
-        paramResult.setSecondComponent(ScrollPaneFactory.createScrollPane(this.responseArea.getComponent()));
+        paramResult.setSecondComponent(this.responseArea.getComponent());
         return paramResult;
     }
 
@@ -218,21 +217,19 @@ public class MainPanel extends Splitter {
                         NotifyComponent.error("请先选择API！",project);
                         return;
                     }
-                    new Thread(
-                            ()->{
-                                try{
-                                    TestApiService service = project.getService(TestApiService.class);
-                                    service.sendCurrentRequest(getTestApi(),parent);
-                                }catch (Exception ex){
-                                    try{
-                                        TestApiUtil.printException(ex,project);
-                                        ex.printStackTrace();
-                                    }catch (Exception ex2){
+                    ApplicationManager.getApplication().executeOnPooledThread(()->{
+                        try{
+                            TestApiService service = project.getService(TestApiService.class);
+                            service.sendCurrentRequest(getTestApi(),parent);
+                        }catch (Exception ex){
+                            try{
+                                TestApiUtil.printException(ex,project);
+                                ex.printStackTrace();
+                            }catch (Exception ex2){
 
-                                    }
-                                }
                             }
-                    ).start();
+                        }
+                    });
                 }
             }
         });
