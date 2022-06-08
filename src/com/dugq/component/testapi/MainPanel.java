@@ -142,6 +142,7 @@ public class MainPanel extends Splitter {
     public void clearAndPrintResponse(String responseBody) {
         clearResponse();
         JSONPrintUtils.printCustomJson(responseBody, responseArea);
+        this.updateUI();
     }
 
     public void setHost(String host){
