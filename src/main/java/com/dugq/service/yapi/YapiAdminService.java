@@ -26,8 +26,8 @@ public class YapiAdminService extends YapiUserService implements YapiBaseService
 
     protected YapiConfigBean getYapiConfigBean() {
         YapiConfigBean yapiConfigBean = new YapiConfigBean();
-        yapiConfigBean.setEmail("admin@admin.com");
-        yapiConfigBean.setPassword("ymfe.org");
+        yapiConfigBean.setEmail("");
+        yapiConfigBean.setPassword("");
         return yapiConfigBean;
     }
 

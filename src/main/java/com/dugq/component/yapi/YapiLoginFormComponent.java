@@ -18,7 +18,7 @@ public class YapiLoginFormComponent extends DialogWrapper {
     private JTextField host;
     private JRadioButton button1;
     private JRadioButton button2;
-    private static final String defaultPassword = "Kjj_123456";
+    private static final String defaultPassword = "";
 
     private static final String preloadPassword = "客集集服务不用填写";
 
