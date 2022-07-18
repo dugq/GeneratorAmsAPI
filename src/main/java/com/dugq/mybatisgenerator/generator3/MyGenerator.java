@@ -1,92 +1,108 @@
-package cn.com.duiba.live.normal.service.mybatisgenerator.generator3;
+package com.dugq.mybatisgenerator.generator3;
 
-import com.mysql.cj.jdbc.Driver;
-import lombok.extern.slf4j.Slf4j;
+import com.dugq.exception.SqlException;
+import com.dugq.pojo.mybatis.MySqlConfigBean;
+import com.dugq.pojo.mybatis.TableConfigBean;
+import com.dugq.service.config.impl.MybatisConfigService;
+import com.dugq.util.APIPrintUtil;
+import com.intellij.openapi.project.Project;
+import com.mysql.cj.conf.PropertyKey;
+import com.mysql.cj.jdbc.exceptions.CommunicationsException;
 import org.apache.commons.collections.CollectionUtils;
 import org.mybatis.generator.api.MyBatisGenerator;
-import org.mybatis.generator.config.Configuration;
-import org.mybatis.generator.config.Context;
-import org.mybatis.generator.config.ModelType;
-import org.mybatis.generator.config.TableConfiguration;
-import org.mybatis.generator.config.xml.ConfigurationParser;
-import org.mybatis.generator.exception.InvalidConfigurationException;
-import org.mybatis.generator.exception.XMLParserException;
+import org.mybatis.generator.config.*;
 import org.mybatis.generator.internal.DefaultShellCallback;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by dugq on 2019-07-26.
  */
-@Slf4j
 public class MyGenerator {
+    private final Project project;
     Configuration configuration;
-    private boolean generatorPackage;
-    private boolean generatorDto;
-    private boolean generatorParam = true;
+    private MybatisConfigService mybatisConfigService;
 
-    public MyGenerator() {
-        List<String> warnings = new ArrayList<>();
-        ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-        InputStream is = classloader.getResourceAsStream("generatorConfig.xml");
-        ConfigurationParser cp = new ConfigurationParser(warnings);
-        String dir = System.getProperty("user.dir");
-        try {
-            configuration = cp.parseConfiguration(is);
-            Driver.class.getClassLoader();
-            Context mysql = configuration.getContext("mysql");
-            mysql.getSqlMapGeneratorConfiguration().setTargetProject(dir+"/live-normal-service-biz/src/main/resources");
-            mysql.getJavaModelGeneratorConfiguration().setTargetProject(dir+"/live-normal-service-biz/src/main/java");
-            mysql.getJavaClientGeneratorConfiguration().setTargetProject(dir+"/live-normal-service-biz/src/main/java");
-            List<TableConfiguration> tableConfigurations = mysql.getTableConfigurations();
-            tableConfigurations.clear();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (XMLParserException e) {
-            e.printStackTrace();
-        }
+    public MyGenerator(Project project) {
+        this.project = project;
+        mybatisConfigService = project.getService(MybatisConfigService.class);
     }
 
-    /**
-     * 设置是生成子包 默认不生成。 设置为true，默认为类名前缀。可在添加table时自定义
-     * @param generatorPackage
-     * @return
-     */
-    public MyGenerator setGeneratorPackage(boolean generatorPackage) {
-        this.generatorPackage = generatorPackage;
-        return this;
+    public void init(){
+        final MySqlConfigBean mySqlConfigBean = mybatisConfigService.getAndFillIfEmpty();
+        String projectDir = project.getBasePath();
+        configuration = builderConfig(mySqlConfigBean,projectDir);
     }
 
-    /**
-     * 设置是否生成DTO类。不默认生产
-     * @param generatorDto
-     * @return
-     */
-    public MyGenerator setGeneratorDto(boolean generatorDto) {
-        this.generatorDto = generatorDto;
-        return this;
+    private Configuration builderConfig(MySqlConfigBean mySqlConfigBean, String dir) {
+        Configuration configuration = new Configuration();
+        Context mysqlContext = new Context(ModelType.CONDITIONAL);
+        mysqlContext.setId("mysql");
+        mysqlContext.setTargetRuntime("com.dugq.mybatisgenerator.generator3.MyIntrospectedTableMybatis3Impl");
+        mysqlContext.addProperty("autoDelimitKeywords","false");
+        mysqlContext.addProperty("javaFileEncoding","UTF-8");
+        mysqlContext.addProperty("beginningDelimiter","`");
+        mysqlContext.addProperty("endingDelimiter","`");
+        PluginConfiguration pluginConfiguration = new PluginConfiguration();
+        pluginConfiguration.setConfigurationType("org.mybatis.generator.plugins.RowBoundsPlugin");
+        mysqlContext.addPluginConfiguration(pluginConfiguration);
+
+        PluginConfiguration pluginConfiguration1 = new PluginConfiguration();
+        pluginConfiguration1.setConfigurationType("com.dugq.mybatisgenerator.plugin.MyPluginAdapter");
+        pluginConfiguration1.addProperty("dtoPath",mySqlConfigBean.getDtoPackagePath());
+        pluginConfiguration1.addProperty("paramPath",mySqlConfigBean.getParamPackagePath());
+        pluginConfiguration1.addProperty("dtoTargetProject",dir+mySqlConfigBean.getDtoRootPath());
+        pluginConfiguration1.addProperty("paramTargetProject",dir+mySqlConfigBean.getParamRootPath());
+        mysqlContext.addPluginConfiguration(pluginConfiguration1);
+
+        CommentGeneratorConfiguration commentGeneratorConfiguration = new CommentGeneratorConfiguration();
+        commentGeneratorConfiguration.setConfigurationType("com.dugq.mybatisgenerator.commontGenerator.MyCommentGenerator");
+        commentGeneratorConfiguration.addProperty("suppressDate","true");
+        commentGeneratorConfiguration.addProperty("suppressAllComments","true");
+        mysqlContext.setCommentGeneratorConfiguration(commentGeneratorConfiguration);
+
+        JDBCConnectionConfiguration jdbcConnectionConfiguration = new JDBCConnectionConfiguration();
+        jdbcConnectionConfiguration.setDriverClass("com.mysql.cj.jdbc.Driver");
+        jdbcConnectionConfiguration.setConnectionURL(mySqlConfigBean.getDbUrl());
+        jdbcConnectionConfiguration.setUserId(mySqlConfigBean.getDbUserName());
+        jdbcConnectionConfiguration.setPassword(mySqlConfigBean.getDbPwd());
+        jdbcConnectionConfiguration.addProperty("useInformationSchema","true");
+        jdbcConnectionConfiguration.addProperty(PropertyKey.connectTimeout.getKeyName(),"3000");
+        jdbcConnectionConfiguration.addProperty(PropertyKey.socketTimeout.getKeyName(),"3000");
+        mysqlContext.setJdbcConnectionConfiguration(jdbcConnectionConfiguration);
+
+        JavaTypeResolverConfiguration javaTypeResolverConfiguration = new JavaTypeResolverConfiguration();
+        javaTypeResolverConfiguration.setConfigurationType("org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl");
+        javaTypeResolverConfiguration.addProperty("forceBigDecimals","false");
+        mysqlContext.setJavaTypeResolverConfiguration(javaTypeResolverConfiguration);
+
+        JavaModelGeneratorConfiguration javaModelGeneratorConfiguration = new JavaModelGeneratorConfiguration();
+        javaModelGeneratorConfiguration.setTargetProject(dir+mySqlConfigBean.getEntityRootPath());
+        javaModelGeneratorConfiguration.setTargetPackage(mySqlConfigBean.getEntityPackagePath());
+        javaModelGeneratorConfiguration.addProperty("constructorBased","false");
+        javaModelGeneratorConfiguration.addProperty("enableSubPackages","true");
+        javaModelGeneratorConfiguration.addProperty("trimStrings","true");
+        mysqlContext.setJavaModelGeneratorConfiguration(javaModelGeneratorConfiguration);
+
+        SqlMapGeneratorConfiguration sqlMapGeneratorConfiguration = new SqlMapGeneratorConfiguration();
+        sqlMapGeneratorConfiguration.setTargetProject(dir+mySqlConfigBean.getMapperRootPath());
+        sqlMapGeneratorConfiguration.setTargetPackage(mySqlConfigBean.getMapperPackagePath());
+        sqlMapGeneratorConfiguration.addProperty("enableSubPackages","true");
+        mysqlContext.setSqlMapGeneratorConfiguration(sqlMapGeneratorConfiguration);
+
+        JavaClientGeneratorConfiguration javaClientGeneratorConfiguration =  new JavaClientGeneratorConfiguration();
+        javaClientGeneratorConfiguration.setConfigurationType("XMLMAPPER");
+        javaClientGeneratorConfiguration.setTargetProject(dir+mySqlConfigBean.getDaoRootPath());
+        javaClientGeneratorConfiguration.setTargetPackage(mySqlConfigBean.getDaoPackagePath());
+        javaClientGeneratorConfiguration.addProperty("enableSubPackages","true");
+        mysqlContext.setJavaClientGeneratorConfiguration(javaClientGeneratorConfiguration);
+
+        configuration.addContext(mysqlContext);
+        return configuration;
     }
 
-    /**
-     * 设置是否生成Param类。不默认生产
-     * @param generatorParam 是否生成dto类
-     * @return 当前对象
-     */
-    public MyGenerator setGeneratorParam(boolean generatorParam) {
-        this.generatorParam = generatorParam;
-        return this;
-    }
-
-    /**
-     *
-     * @param tableName  表名
-     * @param domainName  类名前缀
-     */
-    public MyGenerator addTable(String tableName,String domainName){
+    public MyGenerator addTable(String tableName,String domainName,String packageName,boolean genDto,boolean genParam){
         Context mysql = configuration.getContext("mysql");
         Context context = new Context(ModelType.CONDITIONAL);
         TableConfiguration tableConfiguration = new TableConfiguration(context);
@@ -97,37 +113,11 @@ public class MyGenerator {
         tableConfiguration.setWildcardEscapingEnabled(false);
         tableConfiguration.setTableName(tableName);
         tableConfiguration.setDomainObjectName(domainName);
-        if(generatorPackage){
-            tableConfiguration.addProperty("subPackage",domainName.toLowerCase());
-        }
-        if(generatorDto){
-            tableConfiguration.addProperty("genDto","true");
-        }
-        if (generatorParam) {
-            tableConfiguration.addProperty("genParam","true");
-        }
-        mysql.addTableConfiguration(tableConfiguration);
-        return this;
-    }
 
-    public MyGenerator addTable(String tableName,String domainName,String packageName){
-        generatorPackage =  true;
-        Context mysql = configuration.getContext("mysql");
-        Context context = new Context(ModelType.CONDITIONAL);
-        TableConfiguration tableConfiguration = new TableConfiguration(context);
-        tableConfiguration.setSelectByExampleStatementEnabled(false);
-        tableConfiguration.setDeleteByExampleStatementEnabled(false);
-        tableConfiguration.setCountByExampleStatementEnabled(false);
-        tableConfiguration.setUpdateByExampleStatementEnabled(false);
-        tableConfiguration.setWildcardEscapingEnabled(false);
-        tableConfiguration.setTableName(tableName);
-        tableConfiguration.setDomainObjectName(domainName);
-        if(generatorDto){
-            tableConfiguration.addProperty("genDto","true");
-        }
-        if (generatorParam) {
-            tableConfiguration.addProperty("genParam","true");
-        }
+        tableConfiguration.addProperty("genDto",String.valueOf(genDto));
+        tableConfiguration.addProperty("genParam",String.valueOf(genParam));
+
+
         tableConfiguration.addProperty("subPackage",packageName);
         mysql.addTableConfiguration(tableConfiguration);
         return this;
@@ -147,16 +137,19 @@ public class MyGenerator {
             MyBatisGenerator myBatisGenerator = new MyBatisGenerator(configuration, callback, warnings);
             myBatisGenerator.generate(null);
             if(CollectionUtils.isNotEmpty(warnings)){
-                warnings.forEach(log::error);
+                APIPrintUtil.clear(project);
+                warnings.forEach(warning-> APIPrintUtil.printErrorLine(warning,project));
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (InvalidConfigurationException e) {
+        } catch (CommunicationsException exception){
+            throw new SqlException("can not connect to db!");
+        }catch (Exception e) {
+            APIPrintUtil.clear(project);
+            APIPrintUtil.printException(e,project);
             e.printStackTrace();
         }
+    }
+
+    public void addTable(TableConfigBean config) {
+        addTable(config.getTableName(),config.getDomain(),config.getSubPackage(),config.isGenerateDto(),config.isGenerateParam());
     }
 }

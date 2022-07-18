@@ -1,4 +1,4 @@
-package cn.com.duiba.live.normal.service.mybatisgenerator.dtoGenerator;
+package com.dugq.mybatisgenerator.dtoGenerator;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.mybatis.generator.api.CommentGenerator;
@@ -94,7 +94,7 @@ public class ParamGenerator extends BaseRecordGenerator {
 
 
     private FullyQualifiedJavaType getSuperClass() {
-        return new FullyQualifiedJavaType("cn.com.duiba.live.normal.service.api.param.common.PageQuery");
+        return new FullyQualifiedJavaType("PageQuery");
     }
 
     private boolean includePrimaryKeyColumns() {

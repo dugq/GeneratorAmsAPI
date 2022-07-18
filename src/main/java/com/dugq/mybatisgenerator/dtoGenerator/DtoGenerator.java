@@ -1,4 +1,4 @@
-package cn.com.duiba.live.normal.service.mybatisgenerator.dtoGenerator;
+package com.dugq.mybatisgenerator.dtoGenerator;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.mybatis.generator.api.CommentGenerator;

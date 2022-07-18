@@ -1,4 +1,4 @@
-package cn.com.duiba.live.normal.service.mybatisgenerator.xmlGenrator;
+package com.dugq.mybatisgenerator.xmlGenrator;
 
 import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.dom.xml.Attribute;

@@ -1,51 +1,39 @@
 package com.dugq.service.config.impl;
 
-import com.dugq.component.mysql.InitConfigDialog;
+import com.dugq.component.mysql.AddTableConfigDialog;
 import com.dugq.exception.StopException;
-import com.dugq.pojo.mybatis.MySqlConfigBean;
+import com.dugq.pojo.mybatis.TableConfigBean;
 import com.dugq.service.config.AbstractSingleValueConfigService;
 import com.intellij.openapi.project.Project;
 import org.apache.commons.lang3.StringUtils;
-
-import java.util.Objects;
 
 /**
  * @author dugq
  * @date 2022/6/29 12:43 上午
  */
-public class MybatisConfigService extends AbstractSingleValueConfigService<MySqlConfigBean> {
-    public static final String mybatisConfigFile = "/mybatisGenerator.txt";
+public class MybatisTableConfigService extends AbstractSingleValueConfigService<TableConfigBean> {
+    public static final String mybatisConfigFile = "/mybatisTableConfig.txt";
     private Project project;
 
-    public MybatisConfigService(Project project) {
-        super(project, mybatisConfigFile, MySqlConfigBean.class);
+    public MybatisTableConfigService(Project project) {
+        super(project, mybatisConfigFile, TableConfigBean.class);
         this.project = project;
     }
 
 
-    public MySqlConfigBean getAndFillIfEmpty(){
-        MySqlConfigBean mySqlConfigBean = read();
-        mySqlConfigBean = fillConfigBean(mySqlConfigBean);
+    public TableConfigBean getAndFillIfEmpty(){
+        TableConfigBean tableConfigBean = read();
+        tableConfigBean = fillConfigBean(tableConfigBean);
         //有必填未填写的，轮训干它
-        while (Objects.isNull(mySqlConfigBean) ||
-                StringUtils.isAnyBlank(
-                        mySqlConfigBean.getDaoPath(),
-                        mySqlConfigBean.getDbPwd(),
-                        mySqlConfigBean.getDbUrl(),
-                        mySqlConfigBean.getDbUserName(),
-                        mySqlConfigBean.getMapperPath(),
-                        mySqlConfigBean.getDtoPath(),
-                        mySqlConfigBean.getParamPath(),
-                        mySqlConfigBean.getMapperPath()
-                )){
-            mySqlConfigBean = fillConfigBean(mySqlConfigBean);
+        while (StringUtils.isAnyBlank(tableConfigBean.getDomain(),tableConfigBean.getTableName())){
+            tableConfigBean = fillConfigBean(tableConfigBean);
         }
-        save(mySqlConfigBean);
-        return mySqlConfigBean;
+        save(tableConfigBean);
+        return tableConfigBean;
     }
 
-    private MySqlConfigBean fillConfigBean(MySqlConfigBean mySqlConfigBean) {
-        InitConfigDialog initConfigDialog = new InitConfigDialog(project);
+    private TableConfigBean fillConfigBean(TableConfigBean mySqlConfigBean) {
+        AddTableConfigDialog initConfigDialog = new AddTableConfigDialog(project);
         initConfigDialog.initDefaultValue(mySqlConfigBean);
         if (initConfigDialog.showAndGet()){
             return initConfigDialog.getConfig();

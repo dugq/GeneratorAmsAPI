@@ -6,13 +6,17 @@ import com.dugq.pojo.ApiBean;
 import com.dugq.pojo.TestApiBean;
 import com.dugq.service.config.impl.GlobalHeadersConfigService;
 import com.dugq.service.config.impl.GlobalParamConfigService;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.profiler.ui.JBRunnerClosableTabs;
 import com.intellij.ui.tabs.TabInfo;
-import com.intellij.ui.tabs.TabsListener;
+import com.intellij.ui.tabs.impl.JBEditorTabs;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -31,7 +35,7 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
     private final ToolWindow toolWindow;
 
     //-----children-------
-    private final JBRunnerClosableTabs apiTabbedPane;
+    private final JBEditorTabs apiTabbedPane;
     private final KeyValueDescPanel headerPanel;
     private final KeyValueDescPanel globalParamPanel;
     private final ApiRepositoryPanel apiRepositoryPanel;
@@ -44,7 +48,7 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
         super(true, true);
         this.project = project;
         this.toolWindow = t;
-        apiTabbedPane =new JBRunnerClosableTabs(project,this);
+        apiTabbedPane =new JBEditorTabs(project,null,this);
         this.headerPanel = new KeyValueDescPanel(project,GlobalHeadersConfigService.class);
         this.globalParamPanel = new KeyValueDescPanel(project,GlobalParamConfigService.class);
         this.apiRepositoryPanel = new ApiRepositoryPanel(project);
@@ -145,16 +149,19 @@ public class TestApiPanel extends SimpleToolWindowPanel implements Disposable {
         }
         final MainPanel mainContent = new MainPanel(project, this);
         final TabInfo info = new TabInfo(mainContent);
-        info.setText(apiName);
-        apiTabbedPane.addClosableTab(info, true);
-        apiTabbedPane.addListener(new TabsListener() {
+        DefaultActionGroup tabActionGroup = new DefaultActionGroup();
+        tabActionGroup.add(new AnAction("Close tabs", "Click to close tab", AllIcons.Actions.CloseHovered) {
             @Override
-            public void tabRemoved(@NotNull TabInfo tabToRemove) {
-                final MainPanel component = (MainPanel) tabToRemove.getComponent();
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                final MainPanel component = (MainPanel) info.getComponent();
                 final String uri = component.getUri();
                 apiMap.remove(uri);
+                apiTabbedPane.removeTab(info);
             }
         });
+        info.setTabLabelActions(tabActionGroup, ActionPlaces.EDITOR_TAB);
+        info.setText(apiName);
+        apiTabbedPane.addTab(info);
         apiMap.put(apiURI, info);
         return mainContent;
     }

@@ -1,4 +1,4 @@
-package cn.com.duiba.live.normal.service.mybatisgenerator.daoGenerator;
+package com.dugq.mybatisgenerator.daoGenerator;
 
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.api.dom.java.Interface;

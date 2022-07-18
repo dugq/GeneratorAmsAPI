@@ -1,8 +1,8 @@
-package cn.com.duiba.live.normal.service.mybatisgenerator.plugin;
+package com.dugq.mybatisgenerator.plugin;
 
-import cn.com.duiba.live.normal.service.mybatisgenerator.dtoGenerator.DtoGenerator;
-import cn.com.duiba.live.normal.service.mybatisgenerator.dtoGenerator.ParamGenerator;
-import lombok.extern.slf4j.Slf4j;
+import com.dugq.exception.SqlException;
+import com.dugq.mybatisgenerator.dtoGenerator.DtoGenerator;
+import com.dugq.mybatisgenerator.dtoGenerator.ParamGenerator;
 import org.apache.commons.collections.CollectionUtils;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.IntrospectedColumn;
@@ -22,12 +22,21 @@ import org.mybatis.generator.internal.NullProgressCallback;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Properties;
 
 /**
  * Created by dugq on 2018/4/16.
  */
-@Slf4j
 public class MyPluginAdapter extends PluginAdapter {
+    private String dtoTargetProject;
+    private String paramTargetProject;
+
+    @Override
+    public void setProperties(Properties properties) {
+        super.setProperties(properties);
+        dtoTargetProject = properties.getProperty("dtoTargetProject");
+        paramTargetProject = properties.getProperty("paramTargetProject");
+    }
 
     @Override
     public boolean modelBaseRecordClassGenerated(TopLevelClass topLevelClass,
@@ -41,19 +50,8 @@ public class MyPluginAdapter extends PluginAdapter {
                 javaDocLines.add(0, " ");
             }
         }
-//        Field field = new Field();
-//        field.setFinal(true);
-//        field.setInitializationString(System.currentTimeMillis()+""+ RandomUtils.nextLong(0,10000) +"L"); //$NON-NLS-1$
-//        field.setName("serialVersionUID"); //$NON-NLS-1$
-//        field.setStatic(true);
-//        field.setType(new FullyQualifiedJavaType("long")); //$NON-NLS-1$
-//        field.setVisibility(JavaVisibility.PRIVATE);
-//        context.getCommentGenerator().addFieldComment(field, introspectedTable);
-//        topLevelClass.getFields().add(0,field);
         return true;
     }
-
-
 
     @Override
     public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable) {
@@ -67,12 +65,10 @@ public class MyPluginAdapter extends PluginAdapter {
             ArrayList<String> warnings = new ArrayList<>();
             javaGenerator.setWarnings(warnings);
             if(CollectionUtils.isNotEmpty(warnings)){
-                warnings.forEach(log::info);
+                throw new SqlException(warnings);
             }
             List<CompilationUnit> compilationUnits = javaGenerator.getCompilationUnits();
-            String targetProject = context.getJavaModelGeneratorConfiguration().getTargetProject();
-            targetProject = targetProject .replace("live-normal-service-biz","live-normal-service-api");
-            GeneratedJavaFile generatedJavaFile = new GeneratedJavaFile(compilationUnits.get(0),targetProject,context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING),context.getJavaFormatter());
+            GeneratedJavaFile generatedJavaFile = new GeneratedJavaFile(compilationUnits.get(0), dtoTargetProject,context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING),context.getJavaFormatter());
             list.add(generatedJavaFile);
         }
         if (Boolean.valueOf(tableConfiguration.getProperty("genParam"))) {
@@ -83,16 +79,14 @@ public class MyPluginAdapter extends PluginAdapter {
             ArrayList<String> warnings = new ArrayList<>();
             javaGenerator.setWarnings(warnings);
             if(CollectionUtils.isNotEmpty(warnings)){
-                warnings.forEach(log::info);
+                throw new SqlException(warnings);
             }
             List<CompilationUnit> compilationUnits = javaGenerator.getCompilationUnits();
-            String targetProject = context.getJavaModelGeneratorConfiguration().getTargetProject();
-            targetProject = targetProject .replace("live-normal-service-biz","live-normal-service-api");
-            GeneratedJavaFile generatedJavaFile = new GeneratedJavaFile(compilationUnits.get(0),targetProject,context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING),context.getJavaFormatter());
+            GeneratedJavaFile generatedJavaFile = new GeneratedJavaFile(compilationUnits.get(0), paramTargetProject,context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING),context.getJavaFormatter());
             list.add(generatedJavaFile);
         }
         if (CollectionUtils.isEmpty(list)) {
-            return super.contextGenerateAdditionalJavaFiles(introspectedTable);
+            return null;
         }
         return list;
     }

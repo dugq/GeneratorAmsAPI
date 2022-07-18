@@ -1,7 +1,7 @@
 <idea-plugin>
   <id>com.dugq.dugq</id>
   <name>generatoramsapi</name>
-  <version>5.2.4</version>
+  <version>6.0.1</version>
   <vendor email="dgqngu@163.com" url="http://www.dui88.com">dugq</vendor>
 
   <description>
@@ -10,6 +10,7 @@
   <h2>2、打印接口信息，用于技术方案的编写</h2>
   <h2>3、测试接口，自动生成请求URL和参数</h2>
   <h2>4、测试RPC接口</h2>
+  <h2>5、mybatis generator</h2>
   ]]>
   </description>
 
@@ -17,10 +18,11 @@
     <![CDATA[
     1、全新的用户体验
     2、多接口同时测试
+    3、mybatis generator
       ]]>
   </change-notes>
 
-  <idea-version since-build="201.0"/>
+  <idea-version since-build="202.6397"/>
 
   <extensions defaultExtensionNs="com.intellij">
     <projectService serviceImplementation="com.dugq.service.TestApiService"/>
@@ -38,6 +40,14 @@
     <projectService serviceImplementation="com.dugq.service.yapi.YapiAdminService"/>
     <projectService serviceImplementation="com.dugq.service.project.ProjectApiService"/>
     <projectService serviceImplementation="com.dugq.service.FeignApiService"/>
+
+    <projectService serviceImplementation="com.dugq.mybatisgenerator.generator3.MyGenerator"/>
+    <projectService serviceImplementation="com.dugq.mybatisgenerator.generator3.MyAppendMapperGenerator"/>
+
+    <projectService serviceImplementation="com.dugq.service.config.impl.MybatisConfigService"/>
+    <projectService serviceImplementation="com.dugq.service.config.impl.MybatisTableConfigService"/>
+    <projectService serviceImplementation="com.dugq.service.config.impl.MybatisAppendMapperConfigService"/>
+
     <!--canCloseContents 允许用户关闭-->
     <toolWindow canCloseContents="false" anchor="bottom" order="last"
                 id="KJJ"
@@ -63,9 +73,16 @@
     <action id="uploadAPI2Yapi" class="com.dugq.action.YapiUploadApiAction" text="上传接口">
       <add-to-group group-id="GenerateGroup" anchor="first"/>
     </action>
+    <action id="generatorMybatis" class="com.dugq.action.MybatisGeneratorAction" text="MybatisGen">
+      <add-to-group group-id="GenerateGroup" anchor="last"/>
+    </action>
+    <action id="addMapper" class="com.dugq.action.MybatisAddMapperAction" text="AddMapper">
+      <add-to-group group-id="GenerateGroup" anchor="last"/>
+    </action>
   </actions>
-  <depends>com.intellij.modules.platform</depends>
-  <depends>com.intellij.modules.java</depends>
-  <depends>com.intellij.modules.xml</depends>
+
+   <depends>com.intellij.modules.platform</depends>
+   <depends>com.intellij.modules.java</depends>
+   <depends>com.intellij.modules.xml</depends>
 
 </idea-plugin>

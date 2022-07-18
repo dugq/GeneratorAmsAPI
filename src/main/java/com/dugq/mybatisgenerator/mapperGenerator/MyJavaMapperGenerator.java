@@ -1,11 +1,11 @@
-package cn.com.duiba.live.normal.service.mybatisgenerator.mapperGenerator;
+package com.dugq.mybatisgenerator.mapperGenerator;
 
-import cn.com.duiba.live.normal.service.mybatisgenerator.daoGenerator.DeleteGenerator;
-import cn.com.duiba.live.normal.service.mybatisgenerator.daoGenerator.InsertGenerator;
-import cn.com.duiba.live.normal.service.mybatisgenerator.daoGenerator.SelectByIdGenerator;
-import cn.com.duiba.live.normal.service.mybatisgenerator.daoGenerator.SelectCountGenerator;
-import cn.com.duiba.live.normal.service.mybatisgenerator.daoGenerator.SelectListGenerator;
-import cn.com.duiba.live.normal.service.mybatisgenerator.xmlGenrator.MyXmlGenerator;
+import com.dugq.mybatisgenerator.daoGenerator.DeleteGenerator;
+import com.dugq.mybatisgenerator.daoGenerator.InsertGenerator;
+import com.dugq.mybatisgenerator.daoGenerator.SelectByIdGenerator;
+import com.dugq.mybatisgenerator.daoGenerator.SelectCountGenerator;
+import com.dugq.mybatisgenerator.daoGenerator.SelectListGenerator;
+import com.dugq.mybatisgenerator.xmlGenrator.MyXmlGenerator;
 import org.mybatis.generator.api.CommentGenerator;
 import org.mybatis.generator.api.dom.java.CompilationUnit;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;

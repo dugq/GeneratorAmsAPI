@@ -1,6 +1,4 @@
-String properties(key){
-    project.findProperty(key).toString()
-}
+fun properties(key: String) = project.findProperty(key).toString()
 plugins {
     // Java support
     id("java")
@@ -16,7 +14,16 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.hibernate:hibernate-core:3.6.7.Final'
+    implementation("com.alibaba:fastjson:1.2.71")
+    implementation("org.dom4j:dom4j:2.1.3"){
+        exclude(group = "pull-parser", module = "pull-parser")
+    }
+    implementation("org.mybatis.generator:mybatis-generator-core:1.3.5"){
+        exclude(group = "pull-parser", module = "pull-parser")
+    }
+    implementation(files("lib/fast-md5-2.5.jar"))
+    implementation("mysql:mysql-connector-java:8.0.20")
+    compileOnly("org.projectlombok:lombok:1.18.24")
 }
 
 

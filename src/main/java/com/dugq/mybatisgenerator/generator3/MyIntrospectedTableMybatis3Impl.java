@@ -1,6 +1,6 @@
-package cn.com.duiba.live.normal.service.mybatisgenerator.generator3;
+package com.dugq.mybatisgenerator.generator3;
 
-import cn.com.duiba.live.normal.service.mybatisgenerator.mapperGenerator.MyJavaMapperGenerator;
+import com.dugq.mybatisgenerator.mapperGenerator.MyJavaMapperGenerator;
 import org.apache.commons.lang3.StringUtils;
 import org.mybatis.generator.api.GeneratedXmlFile;
 import org.mybatis.generator.api.ProgressCallback;

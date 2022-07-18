@@ -113,11 +113,11 @@ public class LoginService {
     }
 
     public static void clearUserInfo() {
-        URL resource = LoginService.class.getResource("/dataBase");
+        URL resource = LoginService.class.getResource("/main/dataBase");
         try (
                 FileWriter writer = new FileWriter(new File(resource.getFile()),false);
         ){
-            InputStream path = LoginService.class.getResourceAsStream("/dataBase");
+            InputStream path = LoginService.class.getResourceAsStream("/main/dataBase");
             BufferedReader reader = new BufferedReader(new InputStreamReader(path));
             Properties properties =  new Properties();
             properties.load(reader);

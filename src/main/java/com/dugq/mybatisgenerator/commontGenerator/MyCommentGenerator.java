@@ -1,4 +1,4 @@
-package cn.com.duiba.live.normal.service.mybatisgenerator.commontGenerator;
+package com.dugq.mybatisgenerator.commontGenerator;
 
 import org.apache.commons.lang3.StringUtils;
 import org.mybatis.generator.api.CommentGenerator;
@@ -160,7 +160,7 @@ public class MyCommentGenerator implements CommentGenerator{
         sb.append(" * ");
         sb.append(remarks);
         topLevelClass.addJavaDocLine(sb.toString().replace("\n", " "));
-        topLevelClass.addJavaDocLine(" * @author kjj mybatis generator ");
+        topLevelClass.addJavaDocLine(" * @author mybatis generator ");
         topLevelClass.addJavaDocLine(" * @date "+currentDateStr);
         topLevelClass.addJavaDocLine(" */");
         topLevelClass.addJavaDocLine("@Data");
@@ -196,7 +196,7 @@ public class MyCommentGenerator implements CommentGenerator{
         innerClass.addJavaDocLine(sb.toString().replace("\n", " "));
         sb.setLength(0);
         sb.append(" * @author ");
-        sb.append(systemPro.getProperty("kjj mybatis generator"));
+        sb.append(systemPro.getProperty("mybatis generator"));
         sb.append(" @date ");
         sb.append(currentDateStr);
         innerClass.addJavaDocLine(" */");
