@@ -1,6 +1,7 @@
 package com.dugq.service.yapi;
 
 import com.alibaba.fastjson.JSON;
+import com.dugq.bean.Config;
 import com.dugq.bean.ResponseBean;
 import com.dugq.exception.ErrorException;
 import com.dugq.pojo.yapi.ResultBean;
@@ -26,8 +27,9 @@ public class YapiAdminService extends YapiUserService implements YapiBaseService
 
     protected YapiConfigBean getYapiConfigBean() {
         YapiConfigBean yapiConfigBean = new YapiConfigBean();
-        yapiConfigBean.setEmail("");
-        yapiConfigBean.setPassword("");
+        yapiConfigBean.setEmail(Config.getConfig("adminAccount"));
+        yapiConfigBean.setPassword(Config.getConfig("adminPwd"));
+        yapiConfigBean.setLoginType(YapiConfigBean.LOGIN_TYPE_SOURCE);
         return yapiConfigBean;
     }
 

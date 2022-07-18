@@ -1,5 +1,6 @@
 package com.dugq.component.yapi;
 
+import com.dugq.bean.Config;
 import com.dugq.pojo.yapi.YapiConfigBean;
 import com.intellij.openapi.ui.DialogWrapper;
 import org.apache.commons.lang.StringUtils;
@@ -18,7 +19,6 @@ public class YapiLoginFormComponent extends DialogWrapper {
     private JTextField host;
     private JRadioButton button1;
     private JRadioButton button2;
-    private static final String defaultPassword = "";
 
     private static final String preloadPassword = "客集集服务不用填写";
 
@@ -84,7 +84,7 @@ public class YapiLoginFormComponent extends DialogWrapper {
     public String getPassword(){
         final String text = password.getText();
         if (StringUtils.isBlank(text) || StringUtils.equals(preloadPassword,text.trim())){
-            return defaultPassword;
+            return Config.getConfig("defaultPwd");
         }
         return text;
     }
